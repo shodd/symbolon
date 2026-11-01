@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[workspace.dependencies]
+symbolon-protocol = { path = "crates/protocol" }
+symbolon-core = { path = "crates/core" }
+symbolon-server-core = { path = "crates/server-core" }
+
+[workspace.lints.rust]
+# Unsafe code needs an explicit, reviewed `#[allow]` at the use site.
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
