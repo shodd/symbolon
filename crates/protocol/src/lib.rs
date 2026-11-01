@@ -3,6 +3,13 @@
 //! The normative description is `docs/PROTOCOL.md`. Anything defined here must
 //! match it exactly.
 
+pub mod b64;
+pub mod error;
+pub mod ids;
+pub mod wire;
+
+pub use wire::Role;
+
 /// Protocol version served under `/v1`.
 pub const PROTOCOL_VERSION: u32 = 1;
 
@@ -38,24 +45,3 @@ pub type Seq = u64;
 pub type Revision = u64;
 /// Vault key generation; starts at 1 and increases on every rotation.
 pub type Epoch = u32;
-
-/// Vault membership roles, ordered from least to most privileged (PROTOCOL.md §6.2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Role {
-    View,
-    Edit,
-    Manage,
-    Owner,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn roles_are_ordered_by_privilege() {
-        assert!(Role::View < Role::Edit);
-        assert!(Role::Edit < Role::Manage);
-        assert!(Role::Manage < Role::Owner);
-    }
-}

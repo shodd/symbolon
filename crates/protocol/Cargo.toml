@@ -7,7 +7,21 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[features]
+# Random ID generation (`UserId::random()` etc.). Off by default: the server
+# and WASM clients each bring their own randomness source.
+generate = ["uuid/v4"]
+
 [dependencies]
+# Binary fields travel as base64url without padding (PROTOCOL.md §0).
+base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+# Derives for the JSON wire types.
+serde = { version = "1.0.229", features = ["derive"] }
+# ID parsing and formatting; `v4` only behind the `generate` feature.
+uuid = { version = "1.26.1", default-features = false }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+serde_json = "1.0.154"
