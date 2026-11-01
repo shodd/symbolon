@@ -11,11 +11,15 @@ The key words MUST, SHOULD and MAY are used as in RFC 2119.
 | Transport | HTTPS, JSON bodies (`application/json`), UTF-8. Base path `/v1`. |
 | Binary in JSON | base64url, no padding (written `b64`). |
 | Signed or bound data | Deterministic CBOR (RFC 8949 §4.2.1), written `cbor(...)`. Signatures and AEAD associated data are always computed over these bytes, never over JSON. |
-| IDs | UUIDv4. Lowercase canonical string in JSON, 16-byte bstr in CBOR. |
+| IDs | UUIDv4 (version 4, RFC 9562 variant). Lowercase canonical string in JSON, 16-byte bstr in CBOR. Receivers MUST reject other versions and variants; the only exception is the nil item ID (§6.1). |
 | `origin` | The server's canonical origin, e.g. `https://sync.example.com`: lowercase, no trailing slash. It is included in every login signature so signatures can't be replayed against another server. |
 | Domain separation | Every signature, KDF info string and AAD starts with a string `symbolon/v1/<purpose>`. These strings are frozen at 1.0. |
 | Time | Unix seconds (integer). |
 | Auth | `Authorization: Bearer <access_token>` unless an endpoint is marked *public*. *step-up* marks endpoints that need an account-level session (§4.4). |
+| Responses | `200` with a JSON body when an endpoint returns data. `204 No Content` with no body when it has nothing to return (written `→ 204`). Requests that define no fields have no body, and servers MUST ignore a body if one is sent. |
+| Lists | Bare JSON arrays. Ordered as stated for each endpoint; otherwise the order is unspecified. |
+| Arrays, optional fields | Every array shown in a body is required, even when empty. Fields marked `?` are optional: omitted and `null` mean the same. |
+| Counters | `seq`, `revision` and log `index` are integers in `0 … 2^53 − 1` (9007199254740991), so JavaScript reads them exactly. Receivers MUST reject larger values. |
 
 ### 0.1 Server info (public)
 
@@ -117,7 +121,7 @@ Local unlock copies (biometrics, passkey PRF) are a client concern and are not p
 
 ### 4.1 Sign-up
 
-**`POST /v1/signup/begin`** *(public, rate-limited)* → `{ user_id, signup_token, pow: { challenge, difficulty }, expires_at }`
+**`POST /v1/signup/begin`** *(public, rate-limited, no body)* → `{ user_id, signup_token, pow: { challenge, difficulty }, expires_at }`
 
 - The user ID is reserved for 10 minutes.
 - Proof-of-work: find an 8-byte `pow_nonce` such that `SHA-256("symbolon/v1/pow" || challenge || pow_nonce)` has at least `difficulty` leading zero bits.
@@ -180,12 +184,12 @@ The following require a `step_up` session:
 `PUT /v1/account/credentials` `{ kdf, auth_pk, wrapped_ak, auth_sig }`
 
 - `auth_sig = Ed25519(new auth_sk, cbor(["symbolon/v1/credentials", origin, user_id, auth_pk, SHA-256(wrapped_ak)]))`
-- The server replaces all four fields atomically and ends all other `step_up` sessions.
+- `→ 204`. The server replaces all four fields atomically and ends all other `step_up` sessions.
 - The same endpoint covers password changes and Secret Key changes.
 
 ### 4.7 Account deletion *(step-up)*
 
-`DELETE /v1/account`
+`DELETE /v1/account` `→ 204`
 
 - Fails with `owned_shared_vaults` while the user is the only owner of a vault that has other members.
 - Otherwise the server deletes the account, its devices, its personal vaults and its memberships.
@@ -197,9 +201,9 @@ The following require a `step_up` session:
 | Endpoint | |
 |---|---|
 | `POST /v1/devices` *(step-up)* `{ name, platform, pk, key_storage }` | → `{ device_id }` |
-| `GET /v1/devices` | list: `device_id`, `name`, `platform`, `key_storage`, `created_at`, `last_seen_at` |
-| `PATCH /v1/devices/{id}` `{ name }` | rename |
-| `DELETE /v1/devices/{id}` *(step-up)* | revoke: ends sessions, closes WebSockets |
+| `GET /v1/devices` | `[{ device_id, name, platform, key_storage, created_at, last_seen_at? }]`, oldest first. `last_seen_at` is absent for a device that never logged in. |
+| `PATCH /v1/devices/{id}` `{ name }` | rename, `→ 204` |
+| `DELETE /v1/devices/{id}` *(step-up)* | revoke: ends sessions, closes WebSockets, `→ 204` |
 
 ### 5.2 Pairing
 
@@ -220,14 +224,14 @@ key = HKDF(salt = ps, ikm = X25519(own_sk, peer_pk),
 
 **Mode A: the new device shows the QR code.**
 
-1. New device: `POST /v1/pairing` *(public, rate-limited)* → `{ pairing_id }`. It shows the QR code with `r=new`.
+1. New device: `POST /v1/pairing` *(public, rate-limited, no body)* → `{ pairing_id }`. It shows the QR code with `r=new`.
 2. Existing device (signed in) scans it and posts `POST /v1/pairing/{id}/messages`:
-   `{ from: "existing", pk: pk_existing, box: AeadBox(key, cbor({origin, user_id, secret_key, label}), aad = cbor(["symbolon/v1/pairing/offer", pairing_id])) }`
-3. New device: `GET /v1/pairing/{id}/messages` (or via WebSocket), then decrypts. A successful decryption proves the sender knew `ps`.
+   `{ from: "existing", pk: pk_existing, box: AeadBox(key, cbor({origin, user_id, secret_key, label}), aad = cbor(["symbolon/v1/pairing/offer", pairing_id])) }` `→ 204`
+3. New device: `GET /v1/pairing/{id}/messages` → `[{ from, pk, box }]` in posting order (or wait for the WebSocket notice), then decrypts. A successful decryption proves the sender knew `ps`.
 
 **Mode B: the existing device shows the QR code.**
 
-1. Existing device: `POST /v1/pairing` (authenticated). It shows the QR code with `r=existing`.
+1. Existing device: `POST /v1/pairing` (authenticated, no body) → `{ pairing_id }`. It shows the QR code with `r=existing`.
 2. New device posts `{ from: "new", pk: pk_new, box: AeadBox(key, cbor({device_name, platform}), aad = cbor(["symbolon/v1/pairing/hello", pairing_id])) }`.
 3. Existing device decrypts it, asks the user "Add <device_name>?", and then posts the offer exactly as in mode A, step 2.
 
@@ -242,7 +246,7 @@ key = HKDF(salt = ps, ikm = X25519(own_sk, peer_pk),
   `HpkeBox(member.enc_pk, plaintext = vault_key, info = cbor(["symbolon/v1/grant", vault_id, epoch, member_user_id]))`.
 - Members keep their grants for all epochs, so records from older epochs stay readable.
 
-**`POST /v1/vaults`** `{ vault_id, log: [entry0], grants: [own grant] }` creates a vault.
+**`POST /v1/vaults`** `{ vault_id, log: [entry0], grants: [{ user_id, epoch, grant }] }` `→ 204` creates a vault. Every posted grant names its recipient and epoch.
 
 - `vault_id` is generated by the client.
 - `entry0` is a `create` entry.
@@ -286,8 +290,8 @@ sig = Ed25519(actor.sig_sk, cbor(["symbolon/v1/vault-log", entry_bytes]))
 
 **Endpoints:**
 
-- `GET /v1/vaults/{vid}/log?since=<index>`
-- `POST /v1/vaults/{vid}/log` `{ entries: [...], grants: [...] }`: atomic, appended in order.
+- `GET /v1/vaults/{vid}/log?from=<index>` → `[{ entry, sig }]` with `index >= from` (default 0), in index order.
+- `POST /v1/vaults/{vid}/log` `{ entries: [{ entry, sig }], grants: [{ user_id, epoch, grant }] }` `→ 204`: atomic, appended in order.
 
 Clients MUST verify the whole chain (hashes, signatures and roles) before decrypting with a grant or encrypting to a member. The signing keys come from verified identity bundles whose fingerprints match `subject_fp` in the `add` entries, starting from the creator.
 
@@ -300,12 +304,12 @@ invite_secret = 32 random bytes
 k_inv         = HKDF(salt = "", ikm = invite_secret, info = "symbolon/v1/invite-mac")
 ```
 
-1. Inviter (`manage`+): `POST /v1/vaults/{vid}/invites` `{ invite_id, role, expires_at, max_uses }`
+1. Inviter (`manage`+): `POST /v1/vaults/{vid}/invites` `{ invite_id, role, expires_at, max_uses }` `→ 204`
 2. Link: `<origin>/invite#<invite_id>.<b64 invite_secret>.<b64 inviter_fingerprint>`. The server only ever sees the path.
-3. Invitee: `POST /v1/invites/{invite_id}/accept` `{ bundle, bundle_sig, mac }`
+3. Invitee: `POST /v1/invites/{invite_id}/accept` `{ bundle, bundle_sig, mac }` `→ 204`. The server MUST reject it unless the `user_id` inside `bundle` is the session's user.
    - `mac = HMAC-SHA256(k_inv, cbor(["symbolon/v1/invite-accept", origin, invite_id, invitee_user_id, SHA-256(bundle)]))`
 4. Any `manage`+ device of the vault:
-   - lists pending acceptances with `GET /v1/vaults/{vid}/invites`;
+   - lists pending acceptances with `GET /v1/vaults/{vid}/invites` → `[{ invite_id, user_id, role, bundle, bundle_sig, mac }]`, oldest first;
    - verifies the `mac` and `bundle_sig`;
    - posts an `add` entry with `subject_fp` and a grant (§6.2).
 5. Invitee: verifies that the log chain contains the inviter's fingerprint from the link.
@@ -342,7 +346,7 @@ Responses:
 - `200 { seq }`
 - `409 conflict { record }` with the current record
 
-**`POST /v1/vaults/{vid}/batch`** `{ puts: [...] }`: all-or-nothing. Used for imports and re-encryption.
+**`POST /v1/vaults/{vid}/batch`** `{ puts: [{ item_id, base_revision, revision, key_epoch, ciphertext, blob_refs }] }` → `{ seq }`: all-or-nothing. Each put gets the next `seq` in array order, and the response carries the vault head after the batch. Used for imports and re-encryption.
 
 ### 8.3 Read
 
@@ -351,13 +355,15 @@ Responses:
 ```json
 { "records": [{ "item_id", "revision", "key_epoch", "seq", "ciphertext" }],
   "next_since": 123, "has_more": false, "head_seq": 123,
-  "checkpoint": { "seq", "state_hash", "signer", "sig" } }
+  "checkpoint?": { "seq", "state_hash", "signer", "sig" } }
 ```
+
+`checkpoint` is absent when the server holds none.
 
 - Returns the latest version of each item changed after `since`, ordered by `seq`.
 - If `since` is older than the tombstone retention window, the server returns `410 resync_required` and the client fetches with `since=0`.
 
-**`GET /v1/vaults/{vid}/items/{item_id}/history`** returns the last `history_revisions` revisions.
+**`GET /v1/vaults/{vid}/items/{item_id}/history`** → `[record]`: the last `history_revisions` revisions, newest first.
 
 ### 8.4 Merging (client behavior)
 
@@ -373,7 +379,7 @@ state_hash = SHA-256(cbor(["symbolon/v1/state", vault_id, seq,
 sig        = Ed25519(signer.sig_sk, cbor(["symbolon/v1/checkpoint", vault_id, seq, state_hash]))
 ```
 
-- After a write, a client posts `POST /v1/vaults/{vid}/checkpoints` `{ seq, state_hash, sig }`. The server keeps the last 16.
+- After a write, a client posts `POST /v1/vaults/{vid}/checkpoints` `{ seq, state_hash, sig }` `→ 204`. The server keeps the last 16.
 - A client at `head_seq` that receives a checkpoint for that exact seq MUST verify it. The signer must hold `edit` or higher in the verified log.
 - Clients MUST reject any response whose `head_seq` is lower than the highest seq they have already seen for that vault.
 
@@ -396,7 +402,7 @@ sig        = Ed25519(signer.sig_sk, cbor(["symbolon/v1/checkpoint", vault_id, se
    ```
 
    An empty file is one empty last chunk.
-3. **Upload:** `PUT /v1/vaults/{vid}/blobs/{blob_id}` with the raw body. `Content-Length` MUST equal the reserved size. The upload finalizes the blob.
+3. **Upload:** `PUT /v1/vaults/{vid}/blobs/{blob_id}` with the raw body, `→ 204`. `Content-Length` MUST equal the reserved size. The upload finalizes the blob.
 4. **Reference:** write the item with `blob_refs` containing the blob and the attachment entry (§10) containing `file_key`.
 5. **Download:** `GET /v1/vaults/{vid}/blobs/{blob_id}` (`view`+).
 
@@ -448,7 +454,7 @@ Close codes: `4001` unauthorized or revoked, `4002` unsupported protocol version
 
 ## 12. Errors
 
-All errors use the format `{"error": "<code>", "message": "<human readable>"}`.
+All errors use the format `{"error": "<code>", "message": "<human readable>"}`. Clients MUST accept codes they don't know (a newer server may add some) and then act on the HTTP status alone.
 
 | HTTP | Codes |
 |---|---|
@@ -468,6 +474,7 @@ All errors use the format `{"error": "<code>", "message": "<human readable>"}`.
 - One-time share links and emergency access.
 - Short-code pairing (CPace).
 - Identity key rotation.
+- Authenticating an invite's `role`. The pending-acceptance list returns the role from the server's invite record, and the acceptance MAC doesn't cover it, so a malicious server could change it. To be resolved together with the design review.
 
 ## 14. Test vectors
 

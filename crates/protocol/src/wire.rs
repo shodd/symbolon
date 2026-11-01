@@ -7,14 +7,17 @@
 //!   type here uses `deny_unknown_fields`.
 //! - Envelopes, signatures and keys are opaque bytes at this layer. Their
 //!   structure is a later task.
-//! - Endpoints with no body, or whose response the spec leaves open, are
-//!   modelled with [`Empty`] (`{}`).
+//! - Requests without a body and `204 No Content` responses have no type here.
+//! - Every array in a body is required, even when empty (§0).
+//! - `seq`, `revision` and log indexes are limited to [`crate::safe_int::MAX`].
 //! - Query strings and raw bodies (blob upload and download) are not JSON;
 //!   the query structs below only name the parameters.
 
 use core::fmt;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use subtle::ConstantTimeEq;
+use zeroize::Zeroizing;
 
 use crate::b64::B64;
 use crate::error::ErrorCode;
@@ -23,10 +26,6 @@ use crate::{Epoch, Revision, Seq};
 
 /// Time as Unix seconds (PROTOCOL.md §0).
 pub type UnixSeconds = u64;
-
-/// An empty JSON object, for bodies that carry no data.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Empty {}
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -52,16 +51,54 @@ pub enum SessionLevel {
     StepUp,
 }
 
-/// Opaque bearer token. `Debug` is redacted so it can't end up in logs.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct AccessToken(pub String);
+/// Opaque secret token, sent as a plain JSON string.
+///
+/// Zeroized on drop, redacted in `Debug`, and compared in constant time, so
+/// it can't end up in logs or leak through timing.
+#[derive(Clone)]
+pub struct SecretToken(Zeroizing<String>);
 
-impl fmt::Debug for AccessToken {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("AccessToken(<redacted>)")
+impl SecretToken {
+    pub fn new(token: String) -> Self {
+        Self(Zeroizing::new(token))
+    }
+
+    /// The token text, for sending it.
+    pub fn expose(&self) -> &str {
+        &self.0
     }
 }
+
+impl PartialEq for SecretToken {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.as_bytes().ct_eq(other.0.as_bytes()).into()
+    }
+}
+
+impl Eq for SecretToken {}
+
+impl fmt::Debug for SecretToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("SecretToken(<redacted>)")
+    }
+}
+
+impl Serialize for SecretToken {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.expose())
+    }
+}
+
+impl<'de> Deserialize<'de> for SecretToken {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::new)
+    }
+}
+
+/// Bearer session token (§4.3).
+pub type AccessToken = SecretToken;
+/// Single-use sign-up token (§4.1).
+pub type SignupToken = SecretToken;
 
 /// Password-stretching algorithm (§1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -126,9 +163,6 @@ pub struct PowParams {
 // §4 Accounts and sessions
 // ---------------------------------------------------------------------------
 
-/// `POST /v1/signup/begin` request. The spec defines no fields.
-pub type SignupBeginRequest = Empty;
-
 /// Proof-of-work challenge issued at sign-up.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PowChallenge {
@@ -140,7 +174,7 @@ pub struct PowChallenge {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignupBeginResponse {
     pub user_id: UserId,
-    pub signup_token: String,
+    pub signup_token: SignupToken,
     pub pow: PowChallenge,
     pub expires_at: UnixSeconds,
 }
@@ -160,7 +194,7 @@ pub struct DeviceRegistration {
 /// `POST /v1/signup/finish` request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignupFinishRequest {
-    pub signup_token: String,
+    pub signup_token: SignupToken,
     pub pow_nonce: B64,
     pub kdf: Kdf,
     pub auth_pk: B64,
@@ -246,12 +280,6 @@ pub struct CredentialsChangeRequest {
     pub auth_sig: B64,
 }
 
-/// `PUT /v1/account/credentials` response.
-pub type CredentialsChangeResponse = Empty;
-
-/// `DELETE /v1/account` response.
-pub type DeleteAccountResponse = Empty;
-
 // ---------------------------------------------------------------------------
 // §5 Devices and pairing
 // ---------------------------------------------------------------------------
@@ -284,15 +312,6 @@ pub struct RenameDeviceRequest {
     pub name: String,
 }
 
-/// `PATCH /v1/devices/{id}` response.
-pub type RenameDeviceResponse = Empty;
-
-/// `DELETE /v1/devices/{id}` response.
-pub type RevokeDeviceResponse = Empty;
-
-/// `POST /v1/pairing` request.
-pub type CreatePairingRequest = Empty;
-
 /// `POST /v1/pairing` response.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreatePairingResponse {
@@ -318,9 +337,6 @@ pub struct PairingMessage {
     #[serde(rename = "box")]
     pub box_: B64,
 }
-
-/// `POST /v1/pairing/{id}/messages` response.
-pub type PostPairingMessageResponse = Empty;
 
 /// `GET /v1/pairing/{id}/messages` response, oldest first.
 pub type GetPairingMessagesResponse = Vec<PairingMessage>;
@@ -362,14 +378,12 @@ pub struct CreateVaultRequest {
     pub grants: Vec<MemberGrant>,
 }
 
-/// `POST /v1/vaults` response.
-pub type CreateVaultResponse = Empty;
-
 /// One entry of `GET /v1/vaults`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VaultSummary {
     pub vault_id: VaultId,
     pub role: Role,
+    #[serde(with = "crate::safe_int")]
     pub seq: Seq,
     pub epoch: Epoch,
     pub grants: Vec<EpochGrant>,
@@ -378,11 +392,11 @@ pub struct VaultSummary {
 /// `GET /v1/vaults` response.
 pub type ListVaultsResponse = Vec<VaultSummary>;
 
-/// Query of `GET /v1/vaults/{vid}/log`.
+/// Query of `GET /v1/vaults/{vid}/log`: entries with `index >= from`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogQuery {
-    #[serde(default)]
-    pub since: u64,
+    #[serde(default, with = "crate::safe_int")]
+    pub from: u64,
 }
 
 /// `GET /v1/vaults/{vid}/log` response, in index order.
@@ -392,12 +406,8 @@ pub type GetLogResponse = Vec<LogEntry>;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AppendLogRequest {
     pub entries: Vec<LogEntry>,
-    #[serde(default)]
     pub grants: Vec<MemberGrant>,
 }
-
-/// `POST /v1/vaults/{vid}/log` response.
-pub type AppendLogResponse = Empty;
 
 // ---------------------------------------------------------------------------
 // §7 Invites
@@ -412,9 +422,6 @@ pub struct CreateInviteRequest {
     pub max_uses: u32,
 }
 
-/// `POST /v1/vaults/{vid}/invites` response.
-pub type CreateInviteResponse = Empty;
-
 /// `POST /v1/invites/{invite_id}/accept` request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AcceptInviteRequest {
@@ -422,9 +429,6 @@ pub struct AcceptInviteRequest {
     pub bundle_sig: B64,
     pub mac: B64,
 }
-
-/// `POST /v1/invites/{invite_id}/accept` response.
-pub type AcceptInviteResponse = Empty;
 
 /// One entry of `GET /v1/vaults/{vid}/invites`: an acceptance awaiting an `add` entry.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -449,18 +453,20 @@ pub type ListInvitesResponse = Vec<PendingAcceptance>;
 /// `PUT /v1/vaults/{vid}/items/{item_id}` request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PutItemRequest {
+    #[serde(with = "crate::safe_int")]
     pub base_revision: Revision,
+    #[serde(with = "crate::safe_int")]
     pub revision: Revision,
     pub key_epoch: Epoch,
     /// `AeadBox` over the padded item (§8.1).
     pub ciphertext: B64,
-    #[serde(default)]
     pub blob_refs: Vec<BlobId>,
 }
 
 /// `PUT /v1/vaults/{vid}/items/{item_id}` response (200).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PutItemResponse {
+    #[serde(with = "crate::safe_int")]
     pub seq: Seq,
 }
 
@@ -468,8 +474,10 @@ pub struct PutItemResponse {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Record {
     pub item_id: ItemId,
+    #[serde(with = "crate::safe_int")]
     pub revision: Revision,
     pub key_epoch: Epoch,
+    #[serde(with = "crate::safe_int")]
     pub seq: Seq,
     pub ciphertext: B64,
 }
@@ -500,13 +508,14 @@ pub struct BatchRequest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BatchResponse {
     /// Vault head after the batch.
+    #[serde(with = "crate::safe_int")]
     pub seq: Seq,
 }
 
 /// Query of `GET /v1/vaults/{vid}/changes`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChangesQuery {
-    #[serde(default)]
+    #[serde(default, with = "crate::safe_int")]
     pub since: Seq,
     #[serde(default)]
     pub limit: Option<u32>,
@@ -515,6 +524,7 @@ pub struct ChangesQuery {
 /// Signed vault state attached to sync responses (§8.5).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Checkpoint {
+    #[serde(with = "crate::safe_int")]
     pub seq: Seq,
     pub state_hash: B64,
     pub signer: UserId,
@@ -525,8 +535,10 @@ pub struct Checkpoint {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChangesResponse {
     pub records: Vec<Record>,
+    #[serde(with = "crate::safe_int")]
     pub next_since: Seq,
     pub has_more: bool,
+    #[serde(with = "crate::safe_int")]
     pub head_seq: Seq,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkpoint: Option<Checkpoint>,
@@ -538,13 +550,11 @@ pub type HistoryResponse = Vec<Record>;
 /// `POST /v1/vaults/{vid}/checkpoints` request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PostCheckpointRequest {
+    #[serde(with = "crate::safe_int")]
     pub seq: Seq,
     pub state_hash: B64,
     pub sig: B64,
 }
-
-/// `POST /v1/vaults/{vid}/checkpoints` response.
-pub type PostCheckpointResponse = Empty;
 
 // ---------------------------------------------------------------------------
 // §9 Attachments
@@ -564,9 +574,6 @@ pub struct ReserveBlobResponse {
     pub expires_at: UnixSeconds,
 }
 
-/// `PUT /v1/vaults/{vid}/blobs/{blob_id}` response. The request body is raw bytes.
-pub type UploadBlobResponse = Empty;
-
 // ---------------------------------------------------------------------------
 // §11 WebSocket
 // ---------------------------------------------------------------------------
@@ -585,6 +592,7 @@ pub mod close_code {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VaultSeq {
     pub vault_id: VaultId,
+    #[serde(with = "crate::safe_int")]
     pub seq: Seq,
 }
 
@@ -606,6 +614,7 @@ pub enum ServerMessage {
     },
     VaultChanged {
         vault_id: VaultId,
+        #[serde(with = "crate::safe_int")]
         seq: Seq,
     },
     /// Devices, vault list or grants changed.
@@ -738,7 +747,7 @@ mod tests {
           "auth_sig": "b64"
         }"#;
         let req: SignupFinishRequest = serde_json::from_str(text).unwrap();
-        assert_eq!(req.signup_token, "…");
+        assert_eq!(req.signup_token.expose(), "…");
         assert_eq!(req.kdf.m, 65536);
         assert_eq!(req.kdf.t, 3);
         assert_eq!(req.kdf.p, 4);
@@ -780,7 +789,7 @@ mod tests {
         assert_eq!(
             auth,
             ClientMessage::Auth {
-                token: AccessToken("…".into())
+                token: AccessToken::new("…".into())
             }
         );
         let ready: ServerMessage =
@@ -820,7 +829,6 @@ mod tests {
 
     #[test]
     fn shared_types() {
-        check(&Empty {}, json!({}));
         for (role, name) in [
             (Role::View, "view"),
             (Role::Edit, "edit"),
@@ -855,7 +863,7 @@ mod tests {
             json!({"bundle": "AQID", "bundle_sig": "BA"}),
         );
         assert_eq!(
-            serde_json::to_value(AccessToken("t".into())).unwrap(),
+            serde_json::to_value(AccessToken::new("t".into())).unwrap(),
             json!("t")
         );
     }
@@ -871,7 +879,7 @@ mod tests {
     #[test]
     fn access_token_debug_is_redacted() {
         let resp = SessionResponse {
-            access_token: AccessToken("super-secret".into()),
+            access_token: AccessToken::new("super-secret".into()),
             level: SessionLevel::Device,
             expires_at: 1,
         };
@@ -880,11 +888,32 @@ mod tests {
             !format!(
                 "{:?}",
                 ClientMessage::Auth {
-                    token: AccessToken("super-secret".into())
+                    token: AccessToken::new("super-secret".into())
                 }
             )
             .contains("super-secret")
         );
+        let begin = SignupBeginResponse {
+            user_id: id(U),
+            signup_token: SignupToken::new("REVIEW-SECRET".into()),
+            pow: PowChallenge {
+                challenge: b(&[1]),
+                difficulty: 1,
+            },
+            expires_at: 1,
+        };
+        assert!(!format!("{begin:?}").contains("REVIEW-SECRET"));
+    }
+
+    #[test]
+    fn secret_tokens_compare_by_value_and_serialize_as_strings() {
+        let a = AccessToken::new("abc".into());
+        assert_eq!(a, AccessToken::new("abc".into()));
+        assert_ne!(a, AccessToken::new("abd".into()));
+        assert_ne!(a, AccessToken::new("ab".into()));
+        assert_eq!(serde_json::to_value(&a).unwrap(), json!("abc"));
+        let back: AccessToken = serde_json::from_value(json!("abc")).unwrap();
+        assert_eq!(back.expose(), "abc");
     }
 
     #[test]
@@ -916,11 +945,10 @@ mod tests {
 
     #[test]
     fn signup_types() {
-        check(&SignupBeginRequest::default(), json!({}));
         check(
             &SignupBeginResponse {
                 user_id: id(U),
-                signup_token: "tok".into(),
+                signup_token: SignupToken::new("tok".into()),
                 pow: PowChallenge {
                     challenge: b(&[1, 2, 3]),
                     difficulty: 22,
@@ -943,7 +971,7 @@ mod tests {
         );
         check(
             &SignupFinishRequest {
-                signup_token: "tok".into(),
+                signup_token: SignupToken::new("tok".into()),
                 pow_nonce: b(&[0; 8]),
                 kdf: kdf(),
                 auth_pk: b(&[1]),
@@ -1003,7 +1031,7 @@ mod tests {
         );
         check(
             &SessionResponse {
-                access_token: AccessToken("abc".into()),
+                access_token: AccessToken::new("abc".into()),
                 level: SessionLevel::StepUp,
                 expires_at: 600,
             },
@@ -1038,8 +1066,6 @@ mod tests {
             },
             json!({"kdf": kdf_json(), "auth_pk": "AQ", "wrapped_ak": "Ag", "auth_sig": "Aw"}),
         );
-        check(&CredentialsChangeResponse::default(), json!({}));
-        check(&DeleteAccountResponse::default(), json!({}));
     }
 
     #[test]
@@ -1096,13 +1122,10 @@ mod tests {
             &RenameDeviceRequest { name: "New".into() },
             json!({"name": "New"}),
         );
-        check(&RenameDeviceResponse::default(), json!({}));
-        check(&RevokeDeviceResponse::default(), json!({}));
     }
 
     #[test]
     fn pairing_types() {
-        check(&CreatePairingRequest::default(), json!({}));
         check(
             &CreatePairingResponse { pairing_id: id(U) },
             json!({"pairing_id": U}),
@@ -1119,7 +1142,6 @@ mod tests {
         };
         check(&msg_new, json!({"from": "new", "pk": "AQ", "box": "AgM"}));
         assert!(serde_json::from_value::<PairingSide>(json!("other")).is_err());
-        check(&PostPairingMessageResponse::default(), json!({}));
         let list: GetPairingMessagesResponse = vec![msg, msg_new];
         let json = serde_json::to_string(&list).unwrap();
         assert_eq!(
@@ -1157,7 +1179,6 @@ mod tests {
             json!({"vault_id": V, "log": [{"entry": "AQ", "sig": "Ag"}],
                    "grants": [{"user_id": U, "epoch": 1, "grant": "Aw"}]}),
         );
-        check(&CreateVaultResponse::default(), json!({}));
         let summary = VaultSummary {
             vault_id: id(V),
             role: Role::Manage,
@@ -1180,8 +1201,8 @@ mod tests {
             serde_json::from_str::<ListVaultsResponse>(&json).unwrap(),
             list
         );
-        check(&LogQuery { since: 3 }, json!({"since": 3}));
-        assert_eq!(serde_json::from_str::<LogQuery>("{}").unwrap().since, 0);
+        check(&LogQuery { from: 3 }, json!({"from": 3}));
+        assert_eq!(serde_json::from_str::<LogQuery>("{}").unwrap().from, 0);
         let entries: GetLogResponse = vec![entry.clone()];
         let json = serde_json::to_string(&entries).unwrap();
         assert_eq!(
@@ -1197,9 +1218,11 @@ mod tests {
             json!({"entries": [{"entry": "AQ", "sig": "Ag"}],
                    "grants": [{"user_id": U, "epoch": 1, "grant": "Aw"}]}),
         );
-        let no_grants: AppendLogRequest = serde_json::from_value(json!({"entries": []})).unwrap();
-        assert!(no_grants.grants.is_empty());
-        check(&AppendLogResponse::default(), json!({}));
+        // Arrays are required, even when empty (§0).
+        assert!(serde_json::from_value::<AppendLogRequest>(json!({"entries": []})).is_err());
+        let empty: AppendLogRequest =
+            serde_json::from_value(json!({"entries": [], "grants": []})).unwrap();
+        assert!(empty.grants.is_empty());
     }
 
     #[test]
@@ -1213,7 +1236,6 @@ mod tests {
             },
             json!({"invite_id": U, "role": "edit", "expires_at": 99, "max_uses": 1}),
         );
-        check(&CreateInviteResponse::default(), json!({}));
         check(
             &AcceptInviteRequest {
                 bundle: b(&[1]),
@@ -1222,7 +1244,6 @@ mod tests {
             },
             json!({"bundle": "AQ", "bundle_sig": "Ag", "mac": "Aw"}),
         );
-        check(&AcceptInviteResponse::default(), json!({}));
         let pending = PendingAcceptance {
             invite_id: id(U),
             user_id: id(V),
@@ -1262,11 +1283,21 @@ mod tests {
     #[test]
     fn record_types() {
         check(&put(), put_json());
-        let no_refs: PutItemRequest = serde_json::from_value(
-            json!({"base_revision": 0, "revision": 1, "key_epoch": 1, "ciphertext": ""}),
-        )
-        .unwrap();
-        assert!(no_refs.blob_refs.is_empty());
+        // `blob_refs` is required, even when empty (§0).
+        assert!(
+            serde_json::from_value::<PutItemRequest>(
+                json!({"base_revision": 0, "revision": 1, "key_epoch": 1, "ciphertext": ""}),
+            )
+            .is_err()
+        );
+        // Counters above 2^53 - 1 are rejected (§0).
+        assert!(
+            serde_json::from_value::<PutItemRequest>(json!({
+                "base_revision": 9_007_199_254_740_992_u64, "revision": 1, "key_epoch": 1,
+                "ciphertext": "", "blob_refs": []
+            }))
+            .is_err()
+        );
         check(&PutItemResponse { seq: 5 }, json!({"seq": 5}));
         check(&record(), record_json());
         check(
@@ -1349,7 +1380,6 @@ mod tests {
             },
             json!({"seq": 3, "state_hash": "AQ", "sig": "Ag"}),
         );
-        check(&PostCheckpointResponse::default(), json!({}));
     }
 
     #[test]
@@ -1362,13 +1392,12 @@ mod tests {
             },
             json!({"blob_id": U, "expires_at": 3600}),
         );
-        check(&UploadBlobResponse::default(), json!({}));
     }
 
     #[test]
     fn websocket_messages() {
         let auth = ClientMessage::Auth {
-            token: AccessToken("tok".into()),
+            token: AccessToken::new("tok".into()),
         };
         assert_eq!(
             serde_json::to_value(&auth).unwrap(),

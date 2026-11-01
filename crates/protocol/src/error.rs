@@ -3,10 +3,15 @@
 //! Every error response is `{"error": "<code>", "message": "<human readable>"}`.
 //! A `429 rate_limited` response also carries a `Retry-After` header, which is
 //! not part of the body and so not modelled here.
+//!
+//! Servers send only [`ErrorCode`]s. Clients must also accept codes they don't
+//! know yet (from a newer server) and then act on the HTTP status alone, so a
+//! received body holds an [`AnyErrorCode`].
 
 use core::fmt;
+use core::str::FromStr;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Machine-readable error code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -110,24 +115,100 @@ impl fmt::Display for ErrorCode {
     }
 }
 
+/// The text is not one of the §12 codes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnknownErrorCode;
+
+impl fmt::Display for UnknownErrorCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("unknown error code")
+    }
+}
+
+impl core::error::Error for UnknownErrorCode {}
+
+impl FromStr for ErrorCode {
+    type Err = UnknownErrorCode;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::ALL
+            .into_iter()
+            .find(|code| code.as_str() == s)
+            .ok_or(UnknownErrorCode)
+    }
+}
+
+/// An error code as received: a known §12 code, or one this build doesn't know.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AnyErrorCode {
+    Known(ErrorCode),
+    Unknown(String),
+}
+
+impl AnyErrorCode {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Known(code) => code.as_str(),
+            Self::Unknown(code) => code,
+        }
+    }
+}
+
+impl From<ErrorCode> for AnyErrorCode {
+    fn from(code: ErrorCode) -> Self {
+        Self::Known(code)
+    }
+}
+
+impl fmt::Display for AnyErrorCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for AnyErrorCode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for AnyErrorCode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        Ok(match text.parse() {
+            Ok(code) => Self::Known(code),
+            Err(UnknownErrorCode) => Self::Unknown(text),
+        })
+    }
+}
+
 /// Body of every error response.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ErrorBody {
-    pub error: ErrorCode,
+    pub error: AnyErrorCode,
     pub message: String,
 }
 
 impl ErrorBody {
     pub fn new(error: ErrorCode, message: impl Into<String>) -> Self {
         Self {
-            error,
+            error: error.into(),
             message: message.into(),
         }
     }
 
-    /// HTTP status to send this body with.
-    pub const fn http_status(&self) -> u16 {
-        self.error.http_status()
+    /// The code, if this build knows it.
+    pub fn code(&self) -> Option<ErrorCode> {
+        match self.error {
+            AnyErrorCode::Known(code) => Some(code),
+            AnyErrorCode::Unknown(_) => None,
+        }
+    }
+
+    /// HTTP status for a known code. For unknown codes, use the response's
+    /// actual status instead.
+    pub fn http_status(&self) -> Option<u16> {
+        self.code().map(ErrorCode::http_status)
     }
 }
 
@@ -229,20 +310,38 @@ mod tests {
             r#"{"error":"step_up_required","message":"log in with your password"}"#
         );
         assert_eq!(serde_json::from_str::<ErrorBody>(&json).unwrap(), body);
-        assert_eq!(body.http_status(), 403);
+        assert_eq!(body.http_status(), Some(403));
     }
 
     #[test]
     fn body_ignores_unknown_fields() {
         let body: ErrorBody =
             serde_json::from_str(r#"{"error":"not_found","message":"x","extra":[1,2]}"#).unwrap();
-        assert_eq!(body.error, ErrorCode::NotFound);
+        assert_eq!(body.code(), Some(ErrorCode::NotFound));
     }
 
     #[test]
-    fn rejects_unknown_code_and_wrong_case() {
-        assert!(serde_json::from_str::<ErrorBody>(r#"{"error":"nope","message":"x"}"#).is_err());
+    fn strict_code_rejects_unknown_and_wrong_case() {
+        assert!(serde_json::from_str::<ErrorCode>(r#""nope""#).is_err());
         assert!(serde_json::from_str::<ErrorCode>(r#""NotFound""#).is_err());
         assert!(serde_json::from_str::<ErrorCode>(r#""not-found""#).is_err());
+        assert!("not-found".parse::<ErrorCode>().is_err());
+        assert_eq!("not_found".parse::<ErrorCode>(), Ok(ErrorCode::NotFound));
+    }
+
+    #[test]
+    fn body_keeps_unknown_codes_from_newer_servers() {
+        let json = r#"{"error":"new_server_error","message":"Useful explanation"}"#;
+        let body: ErrorBody = serde_json::from_str(json).unwrap();
+        assert_eq!(body.error, AnyErrorCode::Unknown("new_server_error".into()));
+        assert_eq!(body.message, "Useful explanation");
+        assert_eq!(body.code(), None);
+        assert_eq!(body.http_status(), None);
+        assert_eq!(serde_json::to_string(&body).unwrap(), json);
+    }
+
+    #[test]
+    fn body_rejects_non_string_code() {
+        assert!(serde_json::from_str::<ErrorBody>(r#"{"error":7,"message":"x"}"#).is_err());
     }
 }

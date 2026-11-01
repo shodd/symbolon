@@ -6,6 +6,7 @@
 pub mod b64;
 pub mod error;
 pub mod ids;
+pub mod safe_int;
 pub mod wire;
 
 pub use wire::Role;
@@ -40,8 +41,10 @@ pub mod domain {
 }
 
 /// Per-vault sequence number, assigned by the server on every accepted write.
+/// Limited to [`safe_int::MAX`] on the wire.
 pub type Seq = u64;
 /// Per-item revision; a write sets `revision = base_revision + 1`.
+/// Limited to [`safe_int::MAX`] on the wire.
 pub type Revision = u64;
 /// Vault key generation; starts at 1 and increases on every rotation.
 pub type Epoch = u32;
