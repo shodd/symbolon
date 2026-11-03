@@ -6,6 +6,8 @@
 /// Protocol version served under `/v1`.
 pub const PROTOCOL_VERSION: u32 = 1;
 
+pub mod cbor;
+
 /// Domain-separation strings (PROTOCOL.md §0). Frozen at 1.0.
 pub mod domain {
     pub const AUTH_KEY: &str = "symbolon/v1/auth-key";
