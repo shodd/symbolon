@@ -5,12 +5,14 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.85"
+# 1.87: required by hpke 0.15 and ml-kem 0.3.4 (security fixes in ctutils).
+rust-version = "1.87"
 publish = false
 
 [workspace.dependencies]
 symbolon-protocol = { path = "crates/protocol" }
 symbolon-core = { path = "crates/core" }
+symbolon-crypto = { path = "crates/crypto" }
 symbolon-server-core = { path = "crates/server-core" }
 
 [workspace.lints.rust]
@@ -19,3 +21,11 @@ unsafe_code = "deny"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+
+# Argon2 with the real default parameters (64 MiB, t = 3) takes minutes
+# unoptimized; the test vectors run it, so optimize it in dev/test builds.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
