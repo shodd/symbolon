@@ -1,0 +1,47 @@
+{
+  "description": "PROTOCOL.md §3.2 key derivation with intermediates. `password_nfkc` is UTF-8(NFKC(password)); `auth_pk` is the Ed25519 public key of `auth_seed`.",
+  "vectors": [
+    {
+      "auth_pk": "903a2fbd40b95c57a648aeba12deece8b97c2aca02f43833ea92a826bf94af61",
+      "auth_seed": "890c402230d6d5b16fc337d3d0ed9936653678d6c0c0a3f7f7edbdb002ccbef6",
+      "kek": "1652f3a09f72ef4c2b151005b4125b64558eb72b0ecf472c6a1aaf7a675d7f25",
+      "m": 65536,
+      "master": "ee4b5df3a63f5853bff340ffa9d81b222384c23c7e08f9afa90ec39e8089639b",
+      "p": 4,
+      "password": "correct horse battery staple",
+      "password_nfkc": "636f727265637420686f727365206261747465727920737461706c65",
+      "s_pw": "796aaf8d9c6de9ec6e89a507edd9e1ea21754ac7876a212530f359177f2aacae",
+      "salt": "79a5ab85a64c349ed5d069462f15c167",
+      "secret_key": "a1d149c0d9224a6f423aabe7b73969eb",
+      "t": 3
+    },
+    {
+      "auth_pk": "1d974a620b412e7c4a977f859a518b91fed3bff73340cccdc1a6293c68580d81",
+      "auth_seed": "f3a9113a92bffeaed3f22f968d0712132d4ab4da6f28d868d76eaef9048f5964",
+      "kek": "15253de42d5df93dd88490029436332c723926a901d85b4545cd46349ec63386",
+      "m": 65536,
+      "master": "ca202a71fb9ac10dc47ac11ffbb686681baa758242ddfe4151f3d151d1fce00a",
+      "p": 4,
+      "password": "ＰﬁÅ ",
+      "password_nfkc": "506669c38520",
+      "s_pw": "5477a645db6b4743cdacc602de8f8e85bf6ea0b5bd61a9de9bfaeb1d765b05ec",
+      "salt": "de9591bab0c4cc0b5dabc47c6b4010dc",
+      "secret_key": "8141f6962a8e87db55fec938616cd110",
+      "t": 3
+    },
+    {
+      "auth_pk": "0318a39069ad4d96c39382807c95ae3001868bedcabdd7d9a47f7ebfb358cde2",
+      "auth_seed": "778e525575a8aa66f439601f2962edefd89c7f2812e3ac61cc3cbe52f54ca462",
+      "kek": "070fd1d798a25f3a7ad104a1c663571dae0c179fae38d3e3845897907c444a6f",
+      "m": 65536,
+      "master": "739ec3c517aadb85b0aaf99cbcd090569e2cfd6c8eafd04a3daaca76f7d5e346",
+      "p": 1,
+      "password": "",
+      "password_nfkc": "",
+      "s_pw": "0d28880511b17fdb839f2dd4c44f8fac544b782e992c6f0f836b4afbbc626085",
+      "salt": "9ce1dca05596cfe2d89391e0b12bfaed",
+      "secret_key": "6ff5644f1bab4c4d663c8a543de440c6",
+      "t": 3
+    }
+  ]
+}

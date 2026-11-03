@@ -1,0 +1,99 @@
+{
+  "description": "PROTOCOL.md §2 AeadBox. `ciphertext` is ct || tag; `envelope` is cbor(AeadBox). The third vector uses a wrapped_ak-style AAD cbor([\"symbolon/v1/account-key\", user_id, salt]). `invalid` envelopes must be rejected with the given error class: `malformed` (not a canonical AeadBox), `version`, `algorithm` or `decryption`.",
+  "invalid": [
+    {
+      "aad": "616164",
+      "envelope": "84020158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbe",
+      "error": "version",
+      "why": "version 2"
+    },
+    {
+      "aad": "616164",
+      "envelope": "84010258184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbe",
+      "error": "algorithm",
+      "why": "alg 2"
+    },
+    {
+      "aad": "616164",
+      "envelope": "840101574958b9b01bcd754cd123ae0b30a9d743dbd93affa1368155c9f7092e59aeb680e36f0fd9cf9877420661830cbe",
+      "error": "malformed",
+      "why": "23-byte nonce"
+    },
+    {
+      "aad": "616164",
+      "envelope": "84010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a4fc9f7092e59aeb680e36f0fd9cf9877",
+      "error": "malformed",
+      "why": "ct shorter than a tag"
+    },
+    {
+      "aad": "616164",
+      "envelope": "8418010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbe",
+      "error": "malformed",
+      "why": "version in a 2-byte head"
+    },
+    {
+      "aad": "616164",
+      "envelope": "9f010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbeff",
+      "error": "malformed",
+      "why": "indefinite-length array"
+    },
+    {
+      "aad": "616164",
+      "envelope": "84010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbe00",
+      "error": "malformed",
+      "why": "trailing byte"
+    },
+    {
+      "aad": "616164",
+      "envelope": "84010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbf",
+      "error": "decryption",
+      "why": "tag bit flipped"
+    },
+    {
+      "aad": "616164",
+      "envelope": "84010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a54c9f7092e59aeb680e36f0fd9cf9877420661830c",
+      "error": "decryption",
+      "why": "ct truncated by one byte"
+    },
+    {
+      "aad": "61616400",
+      "envelope": "84010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbe",
+      "error": "decryption",
+      "why": "AAD with an extra byte"
+    }
+  ],
+  "vectors": [
+    {
+      "aad": "",
+      "ciphertext": "8285415669ca2c895dd87e70ccd1d3b0",
+      "envelope": "8401015818068fb4eb1f42d88839cf39fd958b38c7fc25d21e63113cf6508285415669ca2c895dd87e70ccd1d3b0",
+      "key": "82efaef37c8b4add3a7c084e77da20c3cbc97eba0b98e752fbe43b6ae045e747",
+      "nonce": "068fb4eb1f42d88839cf39fd958b38c7fc25d21e63113cf6",
+      "plaintext": ""
+    },
+    {
+      "aad": "616164",
+      "ciphertext": "c9f7092e59aeb680e36f0fd9cf9877420661830cbe",
+      "envelope": "84010158184958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a55c9f7092e59aeb680e36f0fd9cf9877420661830cbe",
+      "key": "8349ae5d2c6094d0f0677e565be485fced5d38728c84fb54905bbe85f9be0abb",
+      "nonce": "4958b9b01bcd754cd123ae0b30a9d743dbd93affa136819a",
+      "plaintext": "68656c6c6f"
+    },
+    {
+      "aad": "837773796d626f6c6f6e2f76312f6163636f756e742d6b657950b88176d08a3c457c833ca76bfe2c9101500ed8df883656501680b4a2d2013e8f48",
+      "ciphertext": "623da440af6c3b87119955fb2e0a1fe20c5c1ae7a782f6162b9358f8df771a5ae9c53a560a60b8253c27f96848be7fc1",
+      "envelope": "84010158188e0be959f7f9f1c0ed8f3786693bef9a2f4205f6b5f144595830623da440af6c3b87119955fb2e0a1fe20c5c1ae7a782f6162b9358f8df771a5ae9c53a560a60b8253c27f96848be7fc1",
+      "key": "4c7fc0b77731a917cd4775f6a9f689335bcd896354a10329836e77099b812f5b",
+      "nonce": "8e0be959f7f9f1c0ed8f3786693bef9a2f4205f6b5f14459",
+      "plaintext": "cb380ad05e1ecfbeba5daec75b2cd23261cf28374efa1e59379160f0add98db7"
+    },
+    {
+      "aad": "",
+      "ciphertext": "bab446b4d0dd7eb5e95a6305db23694b6ed3f1ef684f87f10fbfd7c372e7c4796f5fc2b7ba810ca95829ce20ebece28aff0b78cbf2e4b123dc4515833c00fd729226fb822f060a886a974f750dd2034f649a3419776b06632cdd6b7b2c65150aa0bf20fc1b4cdcc8f1a0fb9a770733fe74166856e34710782f30ece105ffb3582c6efed5fe3cd19fbb66a157e2af1422c20ca3ed0407e02e1f707327419edec6bb1d677242381423c10ada383d82c904812a80831e12273ed9e71b8322614a109e65f163aab9ae47b85a2d9c7b4017f581f2e4a514dcfb73d5897df820872f90abd6f545afeb54217de74e3e2541de0ae4651384fed33e884f6931223f2d8600485a4d8ba1f1bb3eac642e499f6c1bb0c5931da86731c4b0514c1aeac4034cf821b7914f432ae445b03fb2b01482d59d015193fb2241298578f09a2a",
+      "envelope": "8401015818c253498bcc861d4c3796627d847a26318a34a5e3ca3fd3b759013cbab446b4d0dd7eb5e95a6305db23694b6ed3f1ef684f87f10fbfd7c372e7c4796f5fc2b7ba810ca95829ce20ebece28aff0b78cbf2e4b123dc4515833c00fd729226fb822f060a886a974f750dd2034f649a3419776b06632cdd6b7b2c65150aa0bf20fc1b4cdcc8f1a0fb9a770733fe74166856e34710782f30ece105ffb3582c6efed5fe3cd19fbb66a157e2af1422c20ca3ed0407e02e1f707327419edec6bb1d677242381423c10ada383d82c904812a80831e12273ed9e71b8322614a109e65f163aab9ae47b85a2d9c7b4017f581f2e4a514dcfb73d5897df820872f90abd6f545afeb54217de74e3e2541de0ae4651384fed33e884f6931223f2d8600485a4d8ba1f1bb3eac642e499f6c1bb0c5931da86731c4b0514c1aeac4034cf821b7914f432ae445b03fb2b01482d59d015193fb2241298578f09a2a",
+      "key": "b9326e36776bc63480be2268a4e36162e787451c7106c188028f90206889cdf7",
+      "nonce": "c253498bcc861d4c3796627d847a26318a34a5e3ca3fd3b7",
+      "plaintext": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fa000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30"
+    }
+  ]
+}

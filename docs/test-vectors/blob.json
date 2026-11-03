@@ -1,0 +1,131 @@
+{
+  "description": "PROTOCOL.md §9 attachment STREAM. Plaintext byte i is (i mod 251). The AAD is cbor([\"symbolon/v1/blob\", vault_id, blob_id]). Vectors: empty file, short file, exactly one chunk, three chunks. `invalid` blobs (derived from the 5-byte vector's key, AAD and nonce prefix) must be rejected with the given error class: `truncated`, `version` or `decryption`.",
+  "invalid": [
+    {
+      "blob": "",
+      "error": "truncated",
+      "why": "empty input"
+    },
+    {
+      "blob": "01dad2735e828e71e814502104e71324ab72f454",
+      "error": "truncated",
+      "why": "header only"
+    },
+    {
+      "blob": "01dad2735e828e71e814502104e71324ab72f454397b1f1698d6890bf034258e49b0f2",
+      "error": "truncated",
+      "why": "chunk shorter than a tag"
+    },
+    {
+      "blob": "01dad2735e828e71e814502104e71324ab72f454397b1f1698d6890bf034258e49b0f2e00ef79be2",
+      "error": "decryption",
+      "why": "last byte missing"
+    },
+    {
+      "blob": "01dad2735e828e71e814502104e71324ab72f454397b1f1698d6890bf034258e49b0f2e00ef79be2fb00",
+      "error": "decryption",
+      "why": "one byte appended"
+    },
+    {
+      "blob": "01dad2735e828e71e814502104e71324ab72f454397b1f1698d6890bf034258e49b0f2e00ef79be2fb00000000000000000000000000000000",
+      "error": "decryption",
+      "why": "empty chunk appended"
+    },
+    {
+      "blob": "02dad2735e828e71e814502104e71324ab72f454397b1f1698d6890bf034258e49b0f2e00ef79be2fb",
+      "error": "version",
+      "why": "version byte 2"
+    },
+    {
+      "blob": "01dad2735e828e71e814502104e71324ab72f454146dd23b3f4cfa022271109940de41163e1b6a7c6e",
+      "error": "decryption",
+      "why": "only chunk not flagged last"
+    }
+  ],
+  "vectors": [
+    {
+      "aad": "837073796d626f6c6f6e2f76312f626c6f62500eaa5b9048934a539b9d6f9b92d11a54504550de5770784010856060bff83fae94",
+      "blob": "01f0af5e164e4f19dd8bbdc59ef9ec8cbd8b5d857ab12057f5c718230059d828657ca12d",
+      "blob_len": 36,
+      "blob_sha256": "d455d6ba6cb01757686d03cfc1c669f596e181a1499d6d9efb680e7f3033a0c8",
+      "chunks": [
+        {
+          "index": 0,
+          "last": true,
+          "len": 16,
+          "nonce": "f0af5e164e4f19dd8bbdc59ef9ec8cbd8b5d850000000001",
+          "sha256": "e0190796aab988658a2dcffb23f8e36048827ace2b984eedeab63875a58754f3"
+        }
+      ],
+      "file_key": "cd5560b53d143b1e87669bd2906b540f014d7d3d2d91e7b01fed54f50b1b32c1",
+      "nonce_prefix": "f0af5e164e4f19dd8bbdc59ef9ec8cbd8b5d85",
+      "plaintext_len": 0
+    },
+    {
+      "aad": "837073796d626f6c6f6e2f76312f626c6f62500eaa5b9048934a539b9d6f9b92d11a54504550de5770784010856060bff83fae94",
+      "blob": "01dad2735e828e71e814502104e71324ab72f454397b1f1698d6890bf034258e49b0f2e00ef79be2fb",
+      "blob_len": 41,
+      "blob_sha256": "0bbe042f9c596ba0246b88a421f37e085dd3589453b6e69b3ef408cd7f7c0aaf",
+      "chunks": [
+        {
+          "index": 0,
+          "last": true,
+          "len": 21,
+          "nonce": "dad2735e828e71e814502104e71324ab72f4540000000001",
+          "sha256": "db00bd30c712fc31f5fdffaf3c98efc79c401f17549dbe71001f848d7f3e86f7"
+        }
+      ],
+      "file_key": "f3a88c7fed27bec5b9e57d61282e6addec1d567f5370f9e84bc2d6b868d98fe5",
+      "nonce_prefix": "dad2735e828e71e814502104e71324ab72f454",
+      "plaintext_len": 5
+    },
+    {
+      "aad": "837073796d626f6c6f6e2f76312f626c6f62500eaa5b9048934a539b9d6f9b92d11a54504550de5770784010856060bff83fae94",
+      "blob_len": 65572,
+      "blob_sha256": "51692ca18c88aea87efeaf5cf4796484294e3a3e03685d4480108134f668e698",
+      "chunks": [
+        {
+          "index": 0,
+          "last": true,
+          "len": 65552,
+          "nonce": "a139afe3e1f7b21bb6f2dd71451b55119385800000000001",
+          "sha256": "e14a9d79365249080e963a30e2fac2b79c5b5afc2dcd66ea5860fbb5872e61a6"
+        }
+      ],
+      "file_key": "a67c2199d8e93fd62cd983365d55046d2894a753e088ccd7c1f06ff28685a0bd",
+      "nonce_prefix": "a139afe3e1f7b21bb6f2dd71451b5511938580",
+      "plaintext_len": 65536
+    },
+    {
+      "aad": "837073796d626f6c6f6e2f76312f626c6f62500eaa5b9048934a539b9d6f9b92d11a54504550de5770784010856060bff83fae94",
+      "blob_len": 131240,
+      "blob_sha256": "b830371321d4704098286a8f34738f6b26d361fcf6a395eeb5e6e5459ac81880",
+      "chunks": [
+        {
+          "index": 0,
+          "last": false,
+          "len": 65552,
+          "nonce": "d94c4d7c0cf66cc928d69de9ae89886abccf8a0000000000",
+          "sha256": "73e6c1838d32074dc396e68ddea106de05d54b1c5c79b5a54fe3faa9abed7b3f"
+        },
+        {
+          "index": 1,
+          "last": false,
+          "len": 65552,
+          "nonce": "d94c4d7c0cf66cc928d69de9ae89886abccf8a0000000100",
+          "sha256": "9b0f5ffc1beb9667e98129687b78eda4196b841779f3f82bdd5a8c1900aae617"
+        },
+        {
+          "index": 2,
+          "last": true,
+          "len": 116,
+          "nonce": "d94c4d7c0cf66cc928d69de9ae89886abccf8a0000000201",
+          "sha256": "8b64b437dba660a2dd17a8afb424d60b137910974fe94a985d4850c3a685d7a8"
+        }
+      ],
+      "file_key": "4b22b60d876075ef59bedea6cff3f014914443af4b63c7f93dd2a9ce4401016d",
+      "nonce_prefix": "d94c4d7c0cf66cc928d69de9ae89886abccf8a",
+      "plaintext_len": 131172
+    }
+  ]
+}
