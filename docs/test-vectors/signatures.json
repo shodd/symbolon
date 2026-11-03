@@ -1,0 +1,33 @@
+{
+  "description": "PROTOCOL.md §1 signatures. Ed25519 (RFC 8032). ECDSA P-256 / SHA-256 with RFC 6979 deterministic nonces, DER signatures, SEC1 compressed public keys; the second P-256 message has the shape of a device login message (§4.3).",
+  "vectors": {
+    "ed25519": [
+      {
+        "message": "",
+        "public_key": "03f314c3d75a10a875a1be50041702ce0113d8a66e47ec93fb9069acfa76c271",
+        "seed": "c2cab1a3023fd1dd71513bad03eb83480129d88b2dcb1bea2e583ae68e6bac37",
+        "signature": "58a36d99f06a35ace5fa99cfee7a1c51b763c85ebccce04e38ab5fb0a9048ca0ec1576f0398675e71800b2cd7f76e5ca6370f881e8cee3f5645792a7f25c2f09"
+      },
+      {
+        "message": "73796d626f6c6f6e",
+        "public_key": "bff899927a3752c0cce732bb3476a9facc9b832eaadfc5d00153e9ec0b4d23d7",
+        "seed": "ae96052f30dbdf7d87436a6691146c788722ebd3260437e7715ab548543fc240",
+        "signature": "fbe194c60d4554437735dbf518d4aefef8762651f4c3d69096b69643f9b6eb73c97e635b2d233b5c8574112caa13bad7ab12309f2c3ed79b99b2cf442b924a09"
+      }
+    ],
+    "p256": [
+      {
+        "message": "73796d626f6c6f6e",
+        "private_key": "473868d492347515f4c5a64e0104d6c8c85ff7abb6fa527a64425ef1dba2cb17",
+        "public_key": "02dd211f801fa584a0645ddd266f8ae0ab07be0c3eed7a706622c2da301af179cc",
+        "signature": "3044022015088488761dc51ca4702905de420b473abec975db9dd34cb8a74ea9dd96d63202204dc11e98ca75b3f2854ee0b52aa59274d4ee001a762b72f5d68166c887af165c"
+      },
+      {
+        "message": "85781873796d626f6c6f6e2f76312f6c6f67696e2f646576696365781868747470733a2f2f73796e632e6578616d706c652e636f6d50eeb68e6d41ca4b1996f4cc7f10beec0650bb65a28edb494a4eaa2cd8d6e00a26c25820cd8dfa6604166b51e7e51b05bcd87faed33e0bb1637ecbad7ae97ddb60354882",
+        "private_key": "1a800d207d693e34ed571cb0885629f65d6b7b878ce86f5115f6f04bad5b2883",
+        "public_key": "02d342832692ce0f3707810b27433c07fe9e6f7f034fc9eff9f151d24a7f0e4ef5",
+        "signature": "304402207d731350d511d61f9e0b331d22ace6508cc841bdaea072d2825a34abbe8ebde50220044dfcabeb7f4b038c91f47a881f4381ce5ea6e159557e4809c6b39585c38126"
+      }
+    ]
+  }
+}

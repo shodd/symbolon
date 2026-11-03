@@ -1,0 +1,75 @@
+{
+  "description": "PROTOCOL.md §4.1 proof-of-work. `hash` = SHA-256(\"symbolon/v1/pow\" || challenge || nonce). Valid nonces are the smallest big-endian counter that meets the difficulty.",
+  "vectors": [
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 0,
+      "hash": "cf62676a16c6820ac4187b09d25207072f9757bebb72943d8a8c0dc2383fc53e",
+      "nonce": "0000000000000000",
+      "valid": true
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 1,
+      "hash": "cf62676a16c6820ac4187b09d25207072f9757bebb72943d8a8c0dc2383fc53e",
+      "nonce": "0000000000000000",
+      "valid": false
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 1,
+      "hash": "434d1534d47b4a2a709035275fa218efaeb4174a91c9748080f54eec422ec5f0",
+      "nonce": "0000000000000002",
+      "valid": true
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 2,
+      "hash": "434d1534d47b4a2a709035275fa218efaeb4174a91c9748080f54eec422ec5f0",
+      "nonce": "0000000000000002",
+      "valid": false
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 8,
+      "hash": "008a9abb6c4dbaa74002fdb94aaa4e7b153fbe82f3f8830cc8d882ae131f1390",
+      "nonce": "0000000000000229",
+      "valid": true
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 9,
+      "hash": "008a9abb6c4dbaa74002fdb94aaa4e7b153fbe82f3f8830cc8d882ae131f1390",
+      "nonce": "0000000000000229",
+      "valid": false
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 16,
+      "hash": "00001cc90c5040357973f06bd3c92676e22122a379f70f2c09f01e5ad63bd038",
+      "nonce": "0000000000003998",
+      "valid": true
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 20,
+      "hash": "00001cc90c5040357973f06bd3c92676e22122a379f70f2c09f01e5ad63bd038",
+      "nonce": "0000000000003998",
+      "valid": false
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 20,
+      "hash": "00000422d3d685e0fdf60cb60abb78791e80b9f29169566cc85941254d3a8e6b",
+      "nonce": "0000000000011f9f",
+      "valid": true
+    },
+    {
+      "challenge": "e80be07f7b4886d4f80bb6c0913918f2acd984ea1625bea5f0adec1f359645e3",
+      "difficulty": 22,
+      "hash": "00000422d3d685e0fdf60cb60abb78791e80b9f29169566cc85941254d3a8e6b",
+      "nonce": "0000000000011f9f",
+      "valid": false
+    }
+  ]
+}

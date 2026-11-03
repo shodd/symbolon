@@ -40,6 +40,9 @@ mod rng;
 pub mod secret_key;
 pub mod sign;
 
+#[cfg(test)]
+mod test_vectors;
+
 pub use aead_box::AeadBox;
 pub use error::Error;
 pub use fingerprint::Fingerprint;
