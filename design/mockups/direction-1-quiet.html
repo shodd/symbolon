@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Symbolon · Direction 1: Quiet</title>
+<style>
+/* Tokens. Same variable names in all three directions so they map 1:1 onto design/tokens.json later. */
+.th-light{
+  --page:#E9ECEF; --bg:#F6F7F8; --surface:#FFFFFF; --surface-2:#EEF0F2; --line:#E1E4E8; --outline:#7D858E;
+  --text:#1B1F23; --text-2:#59616A; --accent:#2E6A5C; --on-accent:#FFFFFF; --accent-weak:#E2EFEB; --on-accent-weak:#214F45;
+  --danger:#B42318; --success:#1E6B35; --warning:#8A5300; --inverse:#1B1F23; --on-inverse:#FFFFFF;
+  --e1:0 1px 2px rgba(16,24,32,.06),0 1px 1px rgba(16,24,32,.04);
+  --e2:0 4px 12px rgba(16,24,32,.08),0 1px 3px rgba(16,24,32,.06);
+  --e3:0 18px 48px rgba(16,24,32,.16),0 2px 6px rgba(16,24,32,.06);
+  color-scheme:light;
+}
+.th-dark{
+  --page:#0B0C0E; --bg:#141619; --surface:#1A1D21; --surface-2:#22262B; --line:#2A2E34; --outline:#6E7781;
+  --text:#E8EAED; --text-2:#A3ABB4; --accent:#7CC4B3; --on-accent:#0D2621; --accent-weak:#1C332E; --on-accent-weak:#BFE6DC;
+  --danger:#FF8A80; --success:#7ED39A; --warning:#E8B45C; --inverse:#E8EAED; --on-inverse:#1A1D21;
+  --e1:0 1px 2px rgba(0,0,0,.4);
+  --e2:0 4px 14px rgba(0,0,0,.45);
+  --e3:0 18px 48px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04);
+  color-scheme:dark;
+}
+/* check th-light on-inverse on inverse 4.5 */ /* check th-dark on-inverse on inverse 4.5 */
+/* check th-light on-accent-weak on accent-weak 4.5 */ /* check th-dark text-2 on surface-2 4.5 */
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:15px/22px -apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",system-ui,Roboto,Cantarell,"Helvetica Neue",Arial,sans-serif;background:var(--page);color:var(--text);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.s16{width:16px;height:16px}.ic.s24{width:24px;height:24px}
+.mono{font-family:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- Document chrome ---------- */
+.doc{max-width:1740px;margin:0 auto;padding:40px 40px 8px;display:flex;gap:32px;align-items:flex-start;justify-content:space-between}
+.doc-id{display:flex;gap:24px;align-items:flex-start;max-width:900px}
+.eyebrow{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2)}
+.doc h1{font-size:34px;line-height:40px;font-weight:650;letter-spacing:-.01em;margin:4px 0 8px}
+.lede{font-size:16px;line-height:24px;color:var(--text-2);max-width:780px}
+.lede b{color:var(--text);font-weight:600}
+.switch{display:flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--e1)}
+.switch button{min-height:44px;min-width:72px;padding:0 14px;border-radius:7px;font-size:14px;font-weight:500;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.switch button[aria-pressed="true"]{background:var(--accent-weak);color:var(--on-accent-weak);font-weight:650}
+.switch button[aria-pressed="true"]::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+
+.tokens{max-width:1740px;margin:0 auto;padding:24px 40px 8px;display:grid;grid-template-columns:300px 1fr 1fr;gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;box-shadow:var(--e1)}
+.card h2{font-size:13px;line-height:18px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);margin-bottom:14px}
+.card p,.card li{font-size:13px;line-height:19px;color:var(--text-2)}
+.card ul{padding-left:18px;display:grid;gap:6px}
+.card li b{color:var(--text);font-weight:600}
+.logo-row{display:flex;align-items:flex-end;gap:16px;margin-bottom:14px}
+.appicon{border-radius:22%;background:var(--surface-2);display:grid;place-items:center;border:1px solid var(--line)}
+.pal{width:100%;border-collapse:collapse;font-size:13px;line-height:18px}
+.pal th{text-align:left;font-weight:600;color:var(--text-2);padding:0 8px 8px 0;font-size:12px}
+.pal td{padding:5px 8px 5px 0;border-top:1px solid var(--line);vertical-align:middle;color:var(--text)}
+.pal td:last-child{color:var(--text-2)}
+.sw{display:inline-flex;align-items:center;gap:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+.sw i{width:22px;height:22px;border-radius:5px;border:1px solid rgba(127,127,127,.35);display:inline-block}
+.typerow{display:grid;grid-template-columns:96px 1fr;align-items:baseline;gap:12px;padding:6px 0;border-top:1px solid var(--line)}
+.typerow span{font-size:12px;color:var(--text-2)}
+.scale{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.scale div{background:var(--accent-weak);border:1px solid var(--accent);color:var(--on-accent-weak);font-size:11px;display:grid;place-items:end center;padding-bottom:2px}
+.elev{display:flex;gap:14px;margin-top:4px}
+.elev div{flex:1;height:56px;border-radius:10px;background:var(--surface);display:grid;place-items:center;font-size:12px;color:var(--text-2);border:1px solid var(--line)}
+
+/* ---------- Canvas ---------- */
+.canvases{display:grid;gap:0}
+.canvas{background:var(--page);color:var(--text);padding:28px 40px 56px;min-width:1740px;max-width:1740px;margin:0 auto}
+.mode-name{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);margin:8px 0 18px}
+.mode-name::before{content:"";flex:none;width:28px;height:2px;background:var(--outline)}
+.th-light .mode-name::after{content:"Light mode"}
+.th-dark .mode-name::after{content:"Dark mode"}
+.shot{display:grid;gap:10px;align-content:start}
+.cap{font-size:13px;line-height:18px;color:var(--text-2)}
+.cap b{color:var(--text);font-weight:650;margin-right:6px}
+.row2{display:flex;gap:32px;margin-top:40px}
+
+/* ---------- Desktop window ---------- */
+.win{width:1180px;height:800px;border-radius:12px;overflow:hidden;box-shadow:var(--e3);background:var(--bg);border:1px solid var(--line);display:grid;grid-template-rows:44px 1fr}
+.tb{display:flex;align-items:center;gap:12px;padding:0 8px 0 16px;border-bottom:1px solid var(--line);background:var(--bg);font-size:13px;color:var(--text-2)}
+.dots{display:flex;gap:8px}.dots i{width:12px;height:12px;border-radius:50%;background:var(--line);border:1px solid var(--outline)}
+.tb .ttl{flex:1;text-align:center;font-weight:600;color:var(--text)}
+.tbtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:6px;color:var(--text-2);font-size:13px}
+.kbd{font-size:11px;line-height:16px;padding:0 5px;border:1px solid var(--line);border-radius:4px;color:var(--text-2)}
+.wbody{display:grid;grid-template-columns:236px 336px 1fr;min-height:0}
+.side{padding:10px;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--line);overflow:hidden}
+.side h3{font-size:11px;line-height:16px;font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:var(--text-2);padding:10px 10px 4px}
+.nav{position:relative;display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border-radius:7px;font-size:14px;color:var(--text);width:100%;text-align:left}
+.nav .ic{color:var(--text-2)}
+.nav .ct{margin-left:auto;font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
+.nav[aria-current]{background:var(--accent-weak);color:var(--on-accent-weak);font-weight:650}
+.nav[aria-current] .ic,.nav[aria-current] .ct{color:var(--on-accent-weak)}
+.nav[aria-current]::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:2px;background:var(--accent)}
+.vdot{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
+.side .spacer{flex:1}
+.nudge{margin:6px 2px 2px;padding:10px 12px 0;border-radius:10px;background:var(--surface);border:1px solid var(--line);display:grid;grid-template-columns:20px 1fr;gap:4px 10px;font-size:13px;line-height:18px}
+.nudge .ic{color:var(--warning)}
+.nudge b{font-weight:650}
+.nudge p{grid-column:2;color:var(--text-2)}
+.link{grid-column:2;justify-self:start;color:var(--accent);font-weight:650;font-size:13px;min-height:44px;display:inline-flex;align-items:center;text-decoration:underline;text-underline-offset:3px}
+
+.list{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.lhead{padding:14px 16px 10px;display:grid;gap:10px}
+.lhead .top{display:flex;align-items:center;gap:8px}
+.lhead h2{font-size:20px;line-height:26px;font-weight:650;flex:1}
+.lhead h2 small{font-size:13px;font-weight:400;color:var(--text-2);margin-left:6px}
+.ib{width:44px;height:44px;border-radius:8px;display:grid;place-items:center;color:var(--text-2)}
+.ib:hover{background:var(--surface-2)}
+.search{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:9px;background:var(--surface-2);color:var(--text-2);font-size:14px;border:1px solid transparent}
+.search.focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-weak)}
+.search .q{color:var(--text)}
+.search .kbd{margin-left:auto}
+.sorter{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)}
+.rows{padding:2px 8px;display:grid;gap:2px;overflow:hidden}
+.row{position:relative;display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;min-height:56px;padding:6px 10px;border-radius:8px}
+.row .t{font-size:14px;line-height:20px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{font-size:12.5px;line-height:18px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{color:var(--text-2);display:flex;gap:6px}
+.row[aria-selected="true"]{background:var(--accent-weak)}
+.row[aria-selected="true"] .t{font-weight:650;color:var(--on-accent-weak)}
+.row[aria-selected="true"] .s,.row[aria-selected="true"] .meta{color:var(--on-accent-weak)}
+.row[aria-selected="true"]::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:2px;background:var(--accent)}
+.mg{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-size:14px;font-weight:650;background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
+.mg.lg{width:56px;height:56px;border-radius:14px;font-size:22px}
+.secthead{font-size:11px;font-weight:650;letter-spacing:.07em;color:var(--text-2);padding:10px 10px 4px;text-transform:uppercase}
+
+.detail{background:var(--surface);position:relative;overflow:hidden;padding:24px 36px}
+.dhead{display:grid;grid-template-columns:56px 1fr auto;gap:16px;align-items:center;margin-bottom:20px}
+.dhead h2{font-size:24px;line-height:30px;font-weight:650}
+.dmeta{display:flex;align-items:center;gap:10px;margin-top:4px;font-size:13px;color:var(--text-2)}
+.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--accent-weak);color:var(--on-accent-weak);font-size:12.5px;font-weight:650}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:8px;font-size:14px;font-weight:600}
+.btn.out{border:1px solid var(--outline);color:var(--text)}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.ghost{color:var(--accent)}
+.btn.wide{width:100%}
+.btn.tall{min-height:52px;font-size:16px;border-radius:12px}
+.grp{border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.glabel{font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);margin:0 0 6px 2px}
+.f{display:grid;grid-template-columns:132px 1fr auto;align-items:center;gap:12px;min-height:54px;padding:4px 6px 4px 16px;border-top:1px solid var(--line)}
+.f:first-child{border-top:0}
+.lab{font-size:13px;color:var(--text-2)}
+.val{font-size:15px;line-height:22px;min-width:0}
+.val small{display:block;font-size:12.5px;line-height:18px;color:var(--text-2)}
+.acts{display:flex}
+.strength{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--success);font-weight:600;margin-left:10px}
+.totp{display:flex;align-items:center;gap:12px}
+.totp .code{font-size:20px;letter-spacing:.06em;font-weight:500}
+.totp .tm{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-2)}
+.ring-bg{stroke:var(--line)}.ring-fg{stroke:var(--accent);transition:stroke-dashoffset .9s linear}
+.totp .low-note{display:none}
+.totp.low .ring-fg{stroke:var(--warning)}
+.totp.low .low-note{display:inline;color:var(--warning);font-weight:650}
+.chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;border:1px solid var(--outline);font-size:11.5px;color:var(--text-2);font-weight:600}
+.dfoot{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-2);margin-top:6px}
+.toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;border-radius:12px;background:var(--inverse);color:var(--on-inverse);font-size:13.5px;box-shadow:var(--e2);white-space:nowrap}
+.toast button{min-height:40px;padding:0 12px;border-radius:8px;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+
+/* ---------- Phones ---------- */
+.phone{width:395px;height:832px;border-radius:52px;border:10px solid #0E1013;box-shadow:var(--e3);overflow:hidden;position:relative;background:var(--bg);flex:none}
+.scr{position:absolute;inset:0;display:flex;flex-direction:column}
+.sb{height:50px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px 34px;font-size:15px;font-weight:600}
+.sb .ind{display:flex;gap:6px;align-items:center}
+.homebar{position:absolute;left:50%;bottom:8px;width:134px;height:5px;border-radius:3px;background:var(--text);transform:translateX(-50%)}
+.pad{padding:0 20px}
+.navbar{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 6px}
+.navbar .btn{padding:0 10px}
+.largetitle{font-size:32px;line-height:40px;font-weight:700;letter-spacing:-.01em;padding:4px 20px 10px}
+.chips{display:flex;gap:8px;padding:12px 20px 8px;overflow:hidden}
+.fchip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--outline);font-size:14px;color:var(--text);white-space:nowrap;flex:none}
+.fchip .n{color:var(--text-2);font-size:12.5px}
+.fchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:650}
+.mlist{margin:6px 16px 0;background:var(--surface);border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.mrow{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;min-height:64px;padding:8px 12px 8px 14px;border-top:1px solid var(--line)}
+.mrow:first-child{border-top:0}
+.mrow .t{font-size:16px;line-height:22px;font-weight:500}
+.mrow .s{font-size:13.5px;line-height:18px;color:var(--text-2)}
+.mrow .r{display:flex;align-items:center;gap:4px;color:var(--text-2)}
+.tile{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
+.msect{font-size:13px;font-weight:600;color:var(--text-2);padding:16px 32px 2px;text-transform:uppercase;letter-spacing:.05em}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:86px;padding:6px 12px 0;display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-top:1px solid var(--line)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:52px;font-size:11.5px;color:var(--text-2);font-weight:500}
+.tab span.pill{width:56px;height:30px;border-radius:15px;display:grid;place-items:center}
+.tab[aria-current]{color:var(--accent);font-weight:700}
+.tab[aria-current] span.pill{background:var(--accent-weak);color:var(--on-accent-weak)}
+.mgrp{margin:0 16px 14px;background:var(--surface);border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.mf{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;min-height:60px;padding:6px 6px 6px 16px;border-top:1px solid var(--line)}
+.mf:first-child{border-top:0}
+.mf .lab{font-size:13px;line-height:18px}
+.mf .val{font-size:16px}
+.mglabel{font-size:13px;font-weight:600;color:var(--text-2);padding:6px 32px 6px;text-transform:uppercase;letter-spacing:.05em}
+
+.unlock{align-items:center;text-align:center}
+.unlock .sb{align-self:stretch}
+.unlock h1{font-size:26px;line-height:32px;font-weight:700;margin-top:14px}
+.unlock .who{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--text-2);margin-top:6px}
+.bio{margin:26px auto 0;width:112px;height:112px;border-radius:50%;display:grid;place-items:center;background:var(--accent-weak);color:var(--on-accent-weak);position:relative}
+.bio::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px dashed var(--accent);animation:spin 12s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.bio::after{animation:none}}
+.biostat{font-size:15px;margin-top:18px;font-weight:600}
+.biostat small{display:block;font-weight:400;color:var(--text-2);font-size:13.5px}
+.or{display:flex;align-items:center;gap:12px;color:var(--text-2);font-size:13px;margin:22px 0 14px;width:100%}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.field{display:grid;gap:6px;text-align:left;width:100%}
+.field label{font-size:13.5px;font-weight:600}
+.input{display:flex;align-items:center;height:52px;border:1px solid var(--outline);border-radius:12px;background:var(--surface);padding:0 4px 0 14px;font-size:18px;letter-spacing:.12em}
+.input .ib{margin-left:auto}
+.hint{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:18px;color:var(--text-2);text-align:left;margin-top:16px}
+
+.ccard{margin:4px 16px 16px;height:206px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--e2);padding:18px 20px;display:grid;grid-template-rows:auto 1fr auto auto;position:relative;overflow:hidden}
+.ccard::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;border:22px solid var(--accent-weak)}
+.ccard > *{position:relative;z-index:1}
+.ccard .bank{font-size:14px;font-weight:650}
+.ccard .chipi{width:38px;height:28px;border-radius:6px;border:1.5px solid var(--outline);margin-top:18px;background:var(--surface-2)}
+.ccard .num{font-size:20px;letter-spacing:.12em;margin-top:6px}
+.ccard .bot{display:flex;justify-content:space-between;align-items:flex-end;font-size:13px;color:var(--text-2);margin-top:8px}
+.ccard .bot b{display:block;color:var(--text);font-size:14px;font-weight:600;letter-spacing:.04em}
+.ccard .brand{font-weight:800;font-style:italic;font-size:18px;color:var(--text);letter-spacing:.02em}
+
+.steps{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text-2);padding:8px 20px 0}
+.steps i{width:28px;height:4px;border-radius:2px;background:var(--line)}
+.steps i.on{background:var(--accent)}
+.steps i.done{background:var(--accent);opacity:.55}
+.kit h1{font-size:26px;line-height:32px;font-weight:700;padding:14px 20px 8px}
+.kit p.body{font-size:15px;line-height:22px;color:var(--text-2);padding:0 20px}
+.halves{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:18px 20px 14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.halves div{padding:12px 14px;display:grid;gap:2px;font-size:12.5px;line-height:17px;color:var(--text-2)}
+.halves div + div{border-left:1.5px dashed var(--outline)}
+.halves b{font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px}
+.skey{margin:0 20px;padding:14px 6px 14px 16px;border-radius:12px;background:var(--accent-weak);color:var(--on-accent-weak);display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px}
+.skey .lbl{font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}
+.skey .k{font-size:17px;line-height:25px;letter-spacing:.03em;font-weight:600}
+.skey .ib{color:var(--on-accent-weak)}
+.kv{margin:12px 20px 0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;line-height:18px}
+.kv dt{color:var(--text-2)}
+.kv dd{text-align:right}
+.check{display:flex;align-items:center;gap:12px;min-height:48px;margin:12px 20px 4px;font-size:15px;text-align:left}
+.box{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;flex:none;background:var(--accent);color:var(--on-accent)}
+.kitbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 20px 0}
+.kitfoot{padding:0 20px}
+</style>
+</head>
+<body class="th-light">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5M17 6.5l2.5 2.5M14.5 9l2 2"/></symbol>
+<symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M6.5 15H10"/></symbol>
+<symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 9.5L12 4l9 5.5zM5.5 10.5v6.5M10 10.5v6.5M14 10.5v6.5M18.5 10.5v6.5M3 19.5h18"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10.5" r="3"/><path d="M9 16.5h6"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h8.5L19 7.5V21H6z"/><path d="M14.5 3v4.5H19M9 12h7M9 15.5h7M9 8.5h3"/></symbol>
+<symbol id="i-passkey" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 19.5c0-3.3 2.7-5.5 6-5.5 1.2 0 2.3.3 3.2.8"/><circle cx="17.5" cy="13" r="2.5"/><path d="M17.5 15.5v5M17.5 18.5h1.8"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/></symbol>
+<symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.5-3.2 2.8-5 5.5-5s5 1.8 5.5 5"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2c2.3 0 4 1.5 4.5 4.3"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 5.9.6-4.5 4 1.3 5.9-5.3-3-5.3 3 1.3-5.9-4.5-4 5.9-.6z"/></symbol>
+<symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.3 3.3 0 0 1 4.7 4.7l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.6 5.7 3.6 9s-1.1 6.3-3.6 9c-2.5-2.7-3.6-5.7-3.6-9S9.5 5.7 12 3z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-face" viewBox="0 0 24 24"><path d="M4 8.5V6a2 2 0 0 1 2-2h2.5M15.5 4H18a2 2 0 0 1 2 2v2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5M8.5 20H6a2 2 0 0 1-2-2v-2.5M9 9.5V11M15 9.5V11M12 9.5v4h-1M9 16c1.7 1.3 4.3 1.3 6 0"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+<symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="8.8" cy="8.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.2" cy="15.2" r="1.3" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15H17"/></symbol>
+<symbol id="i-device" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></symbol>
+<symbol id="i-laptop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="10" rx="1.5"/><path d="M3 19h18"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></symbol>
+<symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7.5" rx="1.5"/><path d="M7 14h10v6H7z"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.4"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 16.8v.4"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M15.5 5.5l3 3L9 18H6v-3z"/></symbol>
+<symbol id="i-vault" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="11" cy="12" r="3.5"/><path d="M17 9.5v5M11 8.5v.8M11 14.7v.8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+<symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3M18 3.5V7h-3.5M6 20.5V17h3.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-history" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4M12 8v4.5l3 1.8"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5a2 2 0 0 1 2-2h2l1.5-2h5L16 6.5h2a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+<symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 4v16M4 17l3 3 3-3M17 20V4M14 7l3-3 3 3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.5v-8a1 1 0 0 1 1-1h8l8 8-9 9z"/><circle cx="8" cy="8" r="1.5"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5V20H4z"/><path d="M10 20v-5h4v5"/></symbol>
+<symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V5.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3.5 12.5h17"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M5 20c.7-3.8 3.5-6 7-6s6.3 2.2 7 6"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9a4.8 4.8 0 0 1-.5 9.5z"/></symbol>
+</defs></svg>
+
+<header class="doc">
+  <div class="doc-id">
+    <svg viewBox="0 0 64 64" width="88" height="88" role="img" aria-label="Quiet logo mark: a round token split by an interlocking cut">
+      <g transform="translate(-1.6 0)"><path d="M32 8A24 24 0 0 0 32 56V42l-7-6 14-8-7-6z" fill="var(--accent)"/></g>
+      <g transform="translate(1.6 0)"><path d="M32 8A24 24 0 0 1 32 56V42l-7-6 14-8-7-6z" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/></g>
+    </svg>
+    <div>
+      <p class="eyebrow">Symbolon · UI direction 1 of 3 · calm, minimal, native-feeling</p>
+      <h1>Quiet</h1>
+      <p class="lede">Quiet gets out of the way. It looks like a well-made system app on each platform, so trust comes from <b>familiarity, not branding</b>: grouped lists, hairline dividers, the platform font and one restrained pine accent (or the user's OS accent colour where the platform exposes one). It suits people who open a password manager ten times a day and want each visit to be <b>short and uneventful</b>.</p>
+    </div>
+  </div>
+  <div class="switch" role="group" aria-label="Colour mode">
+    <button data-mode="light" aria-pressed="true">Light</button>
+    <button data-mode="dark" aria-pressed="false">Dark</button>
+    <button data-mode="both" aria-pressed="false">Both</button>
+  </div>
+</header>
+
+<section class="tokens" aria-label="Design tokens">
+  <div class="card">
+    <h2>Logo mark</h2>
+    <div class="logo-row">
+      <div class="appicon" style="width:72px;height:72px">
+        <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
+          <path d="M30.4 8A24 24 0 0 0 30.4 56V42l-7-6 14-8-7-6z" fill="var(--accent)"/>
+          <path d="M33.6 8A24 24 0 0 1 33.6 56V42l-7-6 14-8-7-6z" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="appicon" style="width:40px;height:40px">
+        <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
+          <path d="M30 8A24 24 0 0 0 30 56V42l-7-6 14-8-7-6z" fill="var(--accent)"/>
+          <path d="M34 8A24 24 0 0 1 34 56V42l-7-6 14-8-7-6z" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <svg viewBox="0 0 64 64" width="20" height="20" aria-hidden="true">
+        <path d="M30 8A24 24 0 0 0 30 56V42l-7-6 14-8-7-6z" fill="var(--text)"/>
+        <path d="M34 8A24 24 0 0 1 34 56V42l-7-6 14-8-7-6z" fill="none" stroke="var(--text)" stroke-width="5" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <p>A round token broken along a zig-zag cut. The solid half is what you know (your password); the outlined half is what you hold (your Secret Key). Only these two edges fit together. It reads as a simple coin at 16 px, and the monochrome version works as a menu-bar or tray icon.</p>
+  </div>
+
+  <div class="card">
+    <h2>Colour roles</h2>
+    <table class="pal">
+      <tr><th>Role</th><th>Light</th><th>Dark</th><th>Use · contrast (light / dark)</th></tr>
+      <tr><td>bg</td><td><span class="sw"><i style="background:#F6F7F8"></i>#F6F7F8</span></td><td><span class="sw"><i style="background:#141619"></i>#141619</span></td><td>Window, sidebar</td></tr>
+      <tr><td>surface</td><td><span class="sw"><i style="background:#FFFFFF"></i>#FFFFFF</span></td><td><span class="sw"><i style="background:#1A1D21"></i>#1A1D21</span></td><td>List, detail, groups</td></tr>
+      <tr><td>surface-2</td><td><span class="sw"><i style="background:#EEF0F2"></i>#EEF0F2</span></td><td><span class="sw"><i style="background:#22262B"></i>#22262B</span></td><td>Search field, monograms</td></tr>
+      <tr><td>line</td><td><span class="sw"><i style="background:#E1E4E8"></i>#E1E4E8</span></td><td><span class="sw"><i style="background:#2A2E34"></i>#2A2E34</span></td><td>Decorative hairlines only</td></tr>
+      <tr><td>outline</td><td><span class="sw"><i style="background:#7D858E"></i>#7D858E</span></td><td><span class="sw"><i style="background:#6E7781"></i>#6E7781</span></td><td>Input and button borders · ≥ 3.3 / 3.7 : 1</td></tr>
+      <tr><td>text</td><td><span class="sw"><i style="background:#1B1F23"></i>#1B1F23</span></td><td><span class="sw"><i style="background:#E8EAED"></i>#E8EAED</span></td><td>Primary text · 16.6 / 14.0 : 1</td></tr>
+      <tr><td>text-2</td><td><span class="sw"><i style="background:#59616A"></i>#59616A</span></td><td><span class="sw"><i style="background:#A3ABB4"></i>#A3ABB4</span></td><td>Labels, secondary · 6.3 / 7.3 : 1</td></tr>
+      <tr><td>accent</td><td><span class="sw"><i style="background:#2E6A5C"></i>#2E6A5C</span></td><td><span class="sw"><i style="background:#7CC4B3"></i>#7CC4B3</span></td><td>Pine. Primary action, links · 6.3 / 8.4 : 1</td></tr>
+      <tr><td>on-accent</td><td><span class="sw"><i style="background:#FFFFFF"></i>#FFFFFF</span></td><td><span class="sw"><i style="background:#0D2621"></i>#0D2621</span></td><td>Text on accent · 6.3 / 7.9 : 1</td></tr>
+      <tr><td>accent-weak</td><td><span class="sw"><i style="background:#E2EFEB"></i>#E2EFEB</span></td><td><span class="sw"><i style="background:#1C332E"></i>#1C332E</span></td><td>Selection, badges (+ on-accent-weak #214F45 / #BFE6DC)</td></tr>
+      <tr><td>danger · success · warning</td><td><span class="sw"><i style="background:#B42318"></i><i style="background:#1E6B35"></i><i style="background:#8A5300"></i></span></td><td><span class="sw"><i style="background:#FF8A80"></i><i style="background:#7ED39A"></i><i style="background:#E8B45C"></i></span></td><td>Always paired with an icon and a word · ≥ 6.3 : 1</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Type · spacing · radius · elevation</h2>
+    <div class="typerow"><span>Large title</span><div style="font-size:28px;line-height:34px;font-weight:700">Items</div></div>
+    <div class="typerow"><span>Title 20/26</span><div style="font-size:20px;line-height:26px;font-weight:650">Lumen Mail</div></div>
+    <div class="typerow"><span>Body 15/22</span><div>robin@lumenmail.example</div></div>
+    <div class="typerow"><span>Label 13/18</span><div style="font-size:13px;color:var(--text-2)">One-time code</div></div>
+    <div class="typerow"><span>Secret 15/22 mono</span><div class="mono">S1-7KQ2M-X4HDR</div></div>
+    <p style="margin:8px 0 12px">Platform fonts: SF Pro (Apple), Segoe UI Variable (Windows), Roboto (Android), Cantarell/system (Linux). Secrets use the platform monospace so 0/O and 1/l never get confused.</p>
+    <div class="scale" aria-label="Spacing scale">
+      <div style="width:4px;height:4px"></div><div style="width:8px;height:8px"></div><div style="width:12px;height:12px"></div><div style="width:16px;height:16px"></div><div style="width:24px;height:24px">24</div><div style="width:32px;height:32px">32</div><div style="width:48px;height:48px">48</div>
+      <p style="align-self:center">Spacing 4 · 8 · 12 · 16 · 24 · 32 · 48</p>
+    </div>
+    <p>Radius: <b style="color:var(--text)">6</b> buttons · <b style="color:var(--text)">10</b> groups · <b style="color:var(--text)">14</b> sheets, phone groups · <b style="color:var(--text)">999</b> chips and badges</p>
+    <div class="elev"><div style="box-shadow:none">e0 · hairline</div><div style="box-shadow:var(--e1)">e1 · cards</div><div style="box-shadow:var(--e2)">e2 · toasts</div><div style="box-shadow:var(--e3)">e3 · windows</div></div>
+  </div>
+
+  <div class="card" style="grid-column:1 / -1">
+    <h2>Notes for Flutter and accessibility</h2>
+    <div class="cols2">
+      <ul>
+        <li><b>Flutter:</b> one <code>ThemeData</code> per mode plus a <code>ThemeExtension</code> for the extra roles (surface-2, line, accent-weak). Grouped lists are plain <code>Column</code>s of <code>ListTile</code>s inside a bordered <code>DecoratedBox</code>. The adaptive bits are platform-aware: back gesture, title-bar controls, switch styles and the large iOS title.</li>
+        <li><b>System accent:</b> where the OS exposes an accent colour (macOS, Windows, Android 12+ dynamic colour), it replaces pine, but only after it passes the same 4.5 : 1 check. Otherwise the app falls back to pine.</li>
+        <li><b>Monograms, not favicons:</b> item icons are drawn locally, so no network request reveals which sites a user has accounts on.</li>
+      </ul>
+      <ul>
+        <li><b>Contrast:</b> every text pair above meets WCAG AA (4.5 : 1) and control borders meet 3 : 1, in both modes.</li>
+        <li><b>Targets:</b> every interactive element is at least 44 × 44 px, desktop included.</li>
+        <li><b>Not by colour alone:</b> selection adds a side bar and bold weight; filter chips are filled <i>and</i> show a check; strength, sync and warnings always have an icon and a word; an expiring code shows "Expiring" as text.</li>
+        <li>Secrets stay masked until a deliberate tap. Screen readers announce "Password, hidden" rather than reading out the dots.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="canvases">
+<main class="canvas th-light">
+  <div class="mode-name"></div>
+
+  <!-- 1. Desktop -->
+  <div class="shot">
+    <p class="cap"><b>1 · Desktop main window</b>Three panes, as on any native desktop app. The selected item opens on the right; nothing floats or animates unless you ask it to.</p>
+    <div class="win">
+      <div class="tb">
+        <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="ttl">Symbolon</div>
+        <span class="tbtn"><svg class="ic s16" style="color:var(--success)"><use href="#i-check"/></svg>Synced</span>
+        <button class="tbtn"><svg class="ic s16"><use href="#i-lock"/></svg>Lock <span class="kbd">⌘L</span></button>
+      </div>
+      <div class="wbody">
+        <nav class="side" aria-label="Vaults and categories">
+          <h3>Vaults</h3>
+          <button class="nav" aria-current="page"><svg class="ic"><use href="#i-grid"/></svg>All vaults<span class="ct">248</span></button>
+          <button class="nav"><span class="vdot">P</span>Personal<span class="ct">171</span></button>
+          <button class="nav"><span class="vdot">H</span>Household<svg class="ic s16" aria-label="Shared"><use href="#i-people"/></svg><span class="ct">58</span></button>
+          <button class="nav"><span class="vdot">W</span>Work<svg class="ic s16" aria-label="Shared"><use href="#i-people"/></svg><span class="ct">19</span></button>
+          <h3>Categories</h3>
+          <button class="nav"><svg class="ic"><use href="#i-star"/></svg>Favourites<span class="ct">12</span></button>
+          <button class="nav"><svg class="ic"><use href="#i-key"/></svg>Logins<span class="ct">162</span></button>
+          <button class="nav"><svg class="ic"><use href="#i-passkey"/></svg>Passkeys<span class="ct">31</span></button>
+          <button class="nav"><svg class="ic"><use href="#i-card"/></svg>Payment cards<span class="ct">4</span></button>
+          <button class="nav"><svg class="ic"><use href="#i-bank"/></svg>Bank accounts<span class="ct">3</span></button>
+          <button class="nav"><svg class="ic"><use href="#i-doc"/></svg>IDs &amp; passports<span class="ct">6</span></button>
+          <button class="nav"><svg class="ic"><use href="#i-note"/></svg>Secure notes<span class="ct">19</span></button>
+          <button class="nav"><svg class="ic"><use href="#i-term"/></svg>SSH keys<span class="ct">2</span></button>
+          <div class="spacer"></div>
+          <div class="nudge" role="status">
+            <svg class="ic"><use href="#i-warn"/></svg><b>Emergency Kit not saved</b>
+            <button class="link">Save it now</button>
+          </div>
+        </nav>
+
+        <section class="list" aria-label="Items">
+          <div class="lhead">
+            <div class="top"><h2>All items<small>248</small></h2><button class="ib" aria-label="Sort"><svg class="ic"><use href="#i-sort"/></svg></button><button class="ib" aria-label="New item"><svg class="ic"><use href="#i-plus"/></svg></button></div>
+            <div class="search"><svg class="ic s16"><use href="#i-search"/></svg><span>Search all vaults</span><span class="kbd">⌘F</span></div>
+          </div>
+          <div class="rows" role="listbox" aria-label="Items">
+            <div class="secthead">Recently used</div>
+            <div class="row" role="option" aria-selected="true"><span class="mg">L</span><div><div class="t">Lumen Mail</div><div class="s">robin@lumenmail.example</div></div><span class="meta"><svg class="ic s16" aria-label="Shared"><use href="#i-people"/></svg></span></div>
+            <div class="row" role="option"><span class="mg">B</span><div><div class="t">Birch Credit Union Visa</div><div class="s">Visa •••• 4242</div></div><span class="meta"></span></div>
+            <div class="row" role="option"><span class="mg">J</span><div><div class="t">Juniper Code</div><div class="s">robin-t</div></div><span class="meta"><svg class="ic s16" aria-label="Has passkey"><use href="#i-passkey"/></svg></span></div>
+            <div class="secthead">A – Z</div>
+            <div class="row" role="option"><span class="mg">A</span><div><div class="t">Atlas Notes</div><div class="s">robin.testwood</div></div><span class="meta"></span></div>
+            <div class="row" role="option"><span class="mg">B</span><div><div class="t">Birch Credit Union</div><div class="s">Checking · DE89 •••• 3000</div></div><span class="meta"><svg class="ic s16" aria-label="Shared"><use href="#i-people"/></svg></span></div>
+            <div class="row" role="option"><span class="mg">C</span><div><div class="t">Copperleaf Market</div><div class="s">robin@lumenmail.example</div></div><span class="meta"></span></div>
+            <div class="row" role="option"><span class="mg">D</span><div><div class="t">Driftwood Wiki</div><div class="s">rtestwood</div></div><span class="meta"><svg class="ic s16" aria-label="Has passkey"><use href="#i-passkey"/></svg></span></div>
+            <div class="row" role="option"><span class="mg">F</span><div><div class="t">Fern Cloud Storage</div><div class="s">robin@lumenmail.example</div></div><span class="meta"></span></div>
+            <div class="row" role="option"><span class="mg">H</span><div><div class="t">Harbor Transit Pass</div><div class="s">Card no. 0042 1187</div></div><span class="meta"></span></div>
+            <div class="row" role="option"><span class="mg">H</span><div><div class="t">Home Wi-Fi</div><div class="s">Secure note</div></div><span class="meta"><svg class="ic s16" aria-label="Shared"><use href="#i-people"/></svg></span></div>
+          </div>
+        </section>
+
+        <article class="detail" aria-label="Lumen Mail">
+          <div class="dhead">
+            <span class="mg lg">L</span>
+            <div>
+              <h2>Lumen Mail</h2>
+              <div class="dmeta"><span>Login</span><span aria-hidden="true">·</span><span class="badge"><svg class="ic s16"><use href="#i-people"/></svg>Shared · Household · 3 people</span></div>
+            </div>
+            <div style="display:flex;gap:8px"><button class="btn out"><svg class="ic s16"><use href="#i-edit"/></svg>Edit</button><button class="ib" aria-label="More actions"><svg class="ic"><use href="#i-more"/></svg></button></div>
+          </div>
+
+          <div class="grp">
+            <div class="f"><span class="lab">Username</span><span class="val">robin@lumenmail.example</span><span class="acts"><button class="ib" aria-label="Copy username"><svg class="ic"><use href="#i-copy"/></svg></button></span></div>
+            <div class="f" data-secret><span class="lab">Password</span><span class="val"><span class="secret mono" data-mask="••••••••••••••••••••" data-plain="fern-Quill-7-harbor-Lantern" aria-label="Password, hidden">••••••••••••••••••••</span><span class="strength"><svg class="ic s16"><use href="#i-shield"/></svg>Strong</span></span><span class="acts"><button class="ib" data-reveal aria-pressed="false" aria-label="Reveal"><svg class="ic"><use href="#i-eye"/></svg></button><button class="ib" aria-label="Copy password"><svg class="ic"><use href="#i-copy"/></svg></button></span></div>
+            <div class="f"><span class="lab">One-time code</span><span class="val totp" data-totp>
+                <span class="code mono">481 209</span>
+                <span class="tm"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(-90deg)"><circle class="ring-bg" cx="12" cy="12" r="10" fill="none" stroke-width="2.5"/><circle class="ring-fg" cx="12" cy="12" r="10" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="62.83" stroke-dashoffset="25.13"/></svg><span class="secs">18 s</span><span class="low-note">· Expiring</span></span>
+              </span><span class="acts"><button class="ib" aria-label="Copy one-time code"><svg class="ic"><use href="#i-copy"/></svg></button></span></div>
+            <div class="f"><span class="lab">Passkey</span><span class="val">Saved for lumenmail.example<small>Created 12 Mar 2026 · used yesterday</small></span><span class="acts"><span class="chip" style="margin-right:10px"><svg class="ic s16"><use href="#i-passkey"/></svg>Passkey</span></span></div>
+          </div>
+
+          <p class="glabel">Websites</p>
+          <div class="grp">
+            <div class="f"><span class="lab">Website</span><span class="val">lumenmail.example<small>Fills on this domain and its subdomains</small></span><span class="acts"><button class="ib" aria-label="Open website"><svg class="ic"><use href="#i-globe"/></svg></button></span></div>
+            <div class="f"><span class="lab">Website</span><span class="val">webmail.lumenmail.example/login<small>Fills on this exact address only</small></span><span class="acts"><button class="ib" aria-label="Open website"><svg class="ic"><use href="#i-globe"/></svg></button></span></div>
+          </div>
+
+          <div class="cols2">
+            <div>
+              <p class="glabel">Attachment</p>
+              <div class="grp"><div class="f" style="grid-template-columns:24px 1fr auto"><svg class="ic" style="color:var(--text-2)"><use href="#i-clip"/></svg><span class="val">recovery-codes.txt<small>2 KB · end-to-end encrypted</small></span><button class="ib" aria-label="Download attachment"><svg class="ic"><use href="#i-download"/></svg></button></div></div>
+            </div>
+            <div>
+              <p class="glabel">Notes</p>
+              <div class="grp"><div class="f" style="grid-template-columns:1fr"><span class="val" style="font-size:14px;line-height:20px">Recovery address is the Household backup mailbox.</span></div></div>
+            </div>
+          </div>
+          <div class="dfoot"><svg class="ic s16"><use href="#i-history"/></svg>Modified 2 Nov 2026 · Created 5 Jan 2025 · 7 earlier versions</div>
+
+          <div class="toast" role="status"><svg class="ic s16"><use href="#i-check"/></svg>Password copied. Clipboard clears in 24 s.<button>Clear now</button></div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <!-- 2. Unlock -->
+    <div class="shot">
+      <p class="cap"><b>2 · Unlock</b>Face ID starts on its own; the password is always one step below it.</p>
+      <div class="phone"><div class="scr unlock">
+        <div class="sb"><span>9:41</span><span class="ind" aria-hidden="true"><svg class="ic s16"><use href="#i-cloud"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x=".75" y=".75" width="21.5" height="11.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="23.5" y="4.5" width="2" height="4" rx="1" fill="currentColor"/></svg></span></div>
+        <div class="pad" style="width:100%;padding-top:44px;display:flex;flex-direction:column;align-items:center">
+          <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><path d="M30.4 8A24 24 0 0 0 30.4 56V42l-7-6 14-8-7-6z" fill="var(--accent)"/><path d="M33.6 8A24 24 0 0 1 33.6 56V42l-7-6 14-8-7-6z" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/></svg>
+          <h1>Symbolon is locked</h1>
+          <span class="who"><svg class="ic s16"><use href="#i-lock"/></svg>Robin · vault.example</span>
+          <div class="bio"><svg class="ic" style="width:52px;height:52px;stroke-width:1.5"><use href="#i-face"/></svg></div>
+          <p class="biostat" role="status">Looking for your face…<small>Hold your phone in front of you</small></p>
+          <div class="or">or use your password</div>
+          <div class="field">
+            <label>Password</label>
+            <div class="input"><span aria-label="Password field, empty" style="color:var(--text-2);letter-spacing:0;font-size:16px">Enter password</span><button class="ib" aria-label="Show password"><svg class="ic"><use href="#i-eye"/></svg></button></div>
+          </div>
+          <button class="btn out wide tall" style="margin-top:12px">Unlock with password</button>
+          <p class="hint"><svg class="ic s16" style="margin-top:1px"><use href="#i-info"/></svg>Your password is needed after a restart and every 14 days.</p>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+    </div>
+
+    <!-- 3. Item list -->
+    <div class="shot">
+      <p class="cap"><b>3 · Items</b>Large title, search first, type filters as chips. Shared items carry a people icon.</p>
+      <div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="ind" aria-hidden="true"><svg class="ic s16"><use href="#i-cloud"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x=".75" y=".75" width="21.5" height="11.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="23.5" y="4.5" width="2" height="4" rx="1" fill="currentColor"/></svg></span></div>
+        <div class="navbar"><button class="btn ghost"><svg class="ic"><use href="#i-vault"/></svg>All vaults<svg class="ic s16"><use href="#i-chev-d"/></svg></button><button class="ib" aria-label="New item" style="color:var(--accent)"><svg class="ic s24"><use href="#i-plus"/></svg></button></div>
+        <div class="largetitle">Items</div>
+        <div class="pad"><div class="search focus"><svg class="ic s16"><use href="#i-search"/></svg><span class="q">birch</span><span style="margin-left:auto;font-size:13px">3 results</span></div></div>
+        <div class="chips" role="group" aria-label="Filter by type">
+          <button class="fchip" aria-pressed="true"><svg class="ic s16"><use href="#i-check"/></svg>All</button>
+          <button class="fchip" aria-pressed="false"><svg class="ic s16"><use href="#i-key"/></svg>Logins</button>
+          <button class="fchip" aria-pressed="false"><svg class="ic s16"><use href="#i-card"/></svg>Cards</button>
+          <button class="fchip" aria-pressed="false"><svg class="ic s16"><use href="#i-bank"/></svg>Bank</button>
+          <button class="fchip" aria-pressed="false"><svg class="ic s16"><use href="#i-doc"/></svg>Documents</button>
+          <button class="fchip" aria-pressed="false"><svg class="ic s16"><use href="#i-note"/></svg>Notes</button>
+        </div>
+        <div class="msect">Matches</div>
+        <div class="mlist">
+          <div class="mrow"><span class="tile"><svg class="ic"><use href="#i-card"/></svg></span><div><div class="t">Birch Credit Union Visa</div><div class="s">Card · •••• 4242</div></div><span class="r"><svg class="ic s16"><use href="#i-chev-r"/></svg></span></div>
+          <div class="mrow"><span class="tile"><svg class="ic"><use href="#i-bank"/></svg></span><div><div class="t">Birch Credit Union</div><div class="s">Bank account · DE89 •••• 3000</div></div><span class="r"><svg class="ic s16" aria-label="Shared"><use href="#i-people"/></svg><svg class="ic s16"><use href="#i-chev-r"/></svg></span></div>
+          <div class="mrow"><span class="tile"><svg class="ic"><use href="#i-key"/></svg></span><div><div class="t">Birch Online Banking</div><div class="s">Login · robin.testwood</div></div><span class="r"><svg class="ic s16"><use href="#i-chev-r"/></svg></span></div>
+        </div>
+        <div class="msect">Other types</div>
+        <div class="mlist">
+          <div class="mrow"><span class="tile"><svg class="ic"><use href="#i-doc"/></svg></span><div><div class="t">Passport</div><div class="s">Document · expires Jun 2031</div></div><span class="r"><svg class="ic s16"><use href="#i-chev-r"/></svg></span></div>
+          <div class="mrow"><span class="tile"><svg class="ic"><use href="#i-note"/></svg></span><div><div class="t">Home Wi-Fi</div><div class="s">Secure note</div></div><span class="r"><svg class="ic s16" aria-label="Shared"><use href="#i-people"/></svg><svg class="ic s16"><use href="#i-chev-r"/></svg></span></div>
+        </div>
+        <nav class="tabbar" aria-label="Main">
+          <button class="tab" aria-current="page"><span class="pill"><svg class="ic"><use href="#i-vault"/></svg></span>Items</button>
+          <button class="tab"><span class="pill"><svg class="ic"><use href="#i-dice"/></svg></span>Generator</button>
+          <button class="tab"><span class="pill"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</button>
+        </nav>
+      </div></div>
+    </div>
+
+    <!-- 4. Card detail -->
+    <div class="shot">
+      <p class="cap"><b>4 · Payment card</b>The card face is a plain summary; real values sit in the list below, masked.</p>
+      <div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="ind" aria-hidden="true"><svg class="ic s16"><use href="#i-cloud"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x=".75" y=".75" width="21.5" height="11.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="23.5" y="4.5" width="2" height="4" rx="1" fill="currentColor"/></svg></span></div>
+        <div class="navbar"><button class="btn ghost" style="padding-left:4px"><svg class="ic s24"><use href="#i-chev-l"/></svg>Items</button><button class="btn ghost">Edit</button></div>
+        <div class="pad" style="padding-bottom:10px"><div style="font-size:24px;line-height:30px;font-weight:700">Birch Credit Union Visa</div><div style="font-size:14px;color:var(--text-2)">Payment card · Personal vault</div></div>
+        <div class="ccard" aria-label="Card summary">
+          <span class="bank">Birch Credit Union</span>
+          <span class="chipi" aria-hidden="true"></span>
+          <span class="num mono">•••• •••• •••• 4242</span>
+          <div class="bot"><span>Card holder<b>ROBIN TESTWOOD</b></span><span>Expires<b>08/29</b></span><span class="brand">VISA</span></div>
+        </div>
+        <div class="mgrp">
+          <div class="mf" data-secret><div><div class="lab" style="color:var(--text-2)">Card number</div><div class="val mono secret" data-mask="•••• •••• •••• 4242" data-plain="4242 4242 4242 4242">•••• •••• •••• 4242</div></div><span class="acts"><button class="ib" data-reveal aria-pressed="false" aria-label="Reveal"><svg class="ic"><use href="#i-eye"/></svg></button><button class="ib" aria-label="Copy card number"><svg class="ic"><use href="#i-copy"/></svg></button></span></div>
+          <div class="mf"><div><div class="lab" style="color:var(--text-2)">Expiry date</div><div class="val">08 / 2029</div></div><span style="font-size:13px;color:var(--text-2);padding-right:10px">in 2 yr 9 mo</span></div>
+          <div class="mf" data-secret><div><div class="lab" style="color:var(--text-2)">Security code</div><div class="val mono secret" data-mask="•••" data-plain="123">•••</div></div><span class="acts"><button class="ib" data-reveal aria-pressed="false" aria-label="Reveal"><svg class="ic"><use href="#i-eye"/></svg></button><button class="ib" aria-label="Copy security code"><svg class="ic"><use href="#i-copy"/></svg></button></span></div>
+          <div class="mf" data-secret><div><div class="lab" style="color:var(--text-2)">PIN</div><div class="val mono secret" data-mask="••••" data-plain="0000">••••</div></div><span class="acts"><button class="ib" data-reveal aria-pressed="false" aria-label="Reveal"><svg class="ic"><use href="#i-eye"/></svg></button></span></div>
+        </div>
+        <div class="mgrp">
+          <div class="mf"><div><div class="lab" style="color:var(--text-2)">Card holder</div><div class="val">Robin Testwood</div></div><button class="ib" aria-label="Copy card holder"><svg class="ic"><use href="#i-copy"/></svg></button></div>
+          <div class="mf"><div><div class="lab" style="color:var(--text-2)">Brand</div><div class="val">Visa</div></div><span></span></div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+    </div>
+
+    <!-- 5. Emergency Kit -->
+    <div class="shot">
+      <p class="cap"><b>5 · Onboarding: Emergency Kit</b>The two halves explained in one line, then the Secret Key.</p>
+      <div class="phone"><div class="scr kit">
+        <div class="sb"><span>9:41</span><span class="ind" aria-hidden="true"><svg class="ic s16"><use href="#i-cloud"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x=".75" y=".75" width="21.5" height="11.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="23.5" y="4.5" width="2" height="4" rx="1" fill="currentColor"/></svg></span></div>
+        <div class="steps" aria-label="Step 3 of 3"><i class="done"></i><i class="done"></i><i class="on"></i><span style="margin-left:6px">Step 3 of 3</span></div>
+        <h1>Save your Emergency Kit</h1>
+        <p class="body">Your vault opens only when both halves meet. If you lose this phone, the kit plus your password gets you back in. Nobody else can recover it for you, including us.</p>
+        <div class="halves">
+          <div><b><svg class="ic s16"><use href="#i-user"/></svg>Your password</b>Only in your head. Never on the kit.</div>
+          <div><b><svg class="ic s16"><use href="#i-key"/></svg>Secret Key</b>On this device and in the kit.</div>
+        </div>
+        <div class="skey">
+          <div><div class="lbl">Secret Key</div><div class="k mono">S1-7KQ2M-X4HDR-9TBW3-<br>NFZ6P-C8JVA-E5</div></div>
+          <button class="ib" aria-label="Copy Secret Key"><svg class="ic"><use href="#i-copy"/></svg></button>
+        </div>
+        <dl class="kv"><dt>User ID</dt><dd class="mono">7c2e1a90-…-4b1f</dd><dt>Server</dt><dd>vault.example</dd></dl>
+        <div class="kitbtns"><button class="btn pri tall"><svg class="ic"><use href="#i-download"/></svg>Save PDF</button><button class="btn out tall"><svg class="ic"><use href="#i-print"/></svg>Print</button></div>
+        <label class="check"><span class="box" role="checkbox" aria-checked="true"><svg class="ic s16" style="stroke-width:2.5"><use href="#i-check"/></svg></span>I've stored my kit somewhere safe</label>
+        <div class="kitfoot"><button class="btn pri wide tall">Continue</button></div>
+        <div class="homebar"></div>
+      </div></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+(() => {
+  const wrap = document.querySelector('.canvases'), base = wrap.querySelector('.canvas');
+  let clone = null;
+  function setMode(mode) {
+    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    const t = mode === 'dark' ? 'th-dark' : 'th-light';
+    document.body.className = t;
+    base.classList.remove('th-light', 'th-dark'); base.classList.add(t);
+    if (mode === 'both' && !clone) { clone = base.cloneNode(true); clone.classList.replace('th-light', 'th-dark'); wrap.appendChild(clone); }
+    if (mode !== 'both' && clone) { clone.remove(); clone = null; }
+  }
+  document.addEventListener('click', e => {
+    const m = e.target.closest('[data-mode]'); if (m) setMode(m.dataset.mode);
+    const r = e.target.closest('[data-reveal]');
+    if (r) {
+      const s = r.closest('[data-secret]').querySelector('.secret'), on = r.getAttribute('aria-pressed') === 'true';
+      s.textContent = on ? s.dataset.mask : s.dataset.plain;
+      r.setAttribute('aria-pressed', String(!on)); r.setAttribute('aria-label', on ? 'Reveal' : 'Hide');
+      r.querySelector('use').setAttribute('href', on ? '#i-eye' : '#i-eye-off');
+    }
+  });
+  setMode(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  // Fake TOTP: the codes are made up; only the countdown is real.
+  const codes = ['481 209', '730 552', '916 084', '205 371'], C = 62.83;
+  function tick() {
+    const t = Date.now() / 1000, left = 30 - Math.floor(t % 30), code = codes[Math.floor(t / 30) % codes.length];
+    document.querySelectorAll('[data-totp]').forEach(el => {
+      el.querySelector('.code').textContent = code;
+      el.querySelector('.secs').textContent = left + ' s';
+      el.querySelector('.ring-fg').style.strokeDashoffset = String(C * (1 - left / 30));
+      el.classList.toggle('low', left <= 5);
+    });
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
